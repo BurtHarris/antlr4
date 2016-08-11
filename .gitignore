@@ -1,6 +1,5 @@
 # Maven build folders
-tool/target/
-runtime/*/target
+target/
 
 # Ant build folders
 build/
@@ -58,6 +57,3 @@ bilder.pyc
 bild.log
 
 bild_output.txt
-
-# NPM dependencies
-node_modules
