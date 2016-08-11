@@ -3,6 +3,7 @@
  *  Copyright (c) 2012 Terence Parr
  *  Copyright (c) 2012 Sam Harwell
  *  Copyright (c) 2014 Eric Vergnaud
+ *  Copyright (c) 2016 Burt Harris
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -48,12 +49,12 @@ pythonTypeInitMap ::= [
 
 ParserFile(file, parser, namedActions, contextSuperClass) ::= <<
 <fileHeader(file.grammarFileName, file.ANTLRVersion)>
-var antlr4 = require('antlr4/index');
+import * as antlr4 from 'antlr4';  
 <if(file.genListener)>
-var <file.grammarName>Listener = require('./<file.grammarName>Listener').<file.grammarName>Listener;
+export * from './<file.grammarName>Listener');
 <endif>
 <if(file.genVisitor)>
-var <file.grammarName>Visitor = require('./<file.grammarName>Visitor').<file.grammarName>Visitor;
+export * from './<file.grammarName>Visitor';
 <endif>
 
 <namedActions.header>
@@ -62,35 +63,31 @@ var <file.grammarName>Visitor = require('./<file.grammarName>Visitor').<file.gra
 
 ListenerFile(file, header) ::= <<
 <fileHeader(file.grammarFileName, file.ANTLRVersion)>
-var antlr4 = require('antlr4/index');
+import * as antlr4 from 'antlr4';
 
 // This class defines a complete listener for a parse tree produced by <file.parserName>.
-function <file.grammarName>Listener() {
-	antlr4.tree.ParseTreeListener.call(this);
-	return this;
-}
-
-<file.grammarName>Listener.prototype = Object.create(antlr4.tree.ParseTreeListener.prototype);
-<file.grammarName>Listener.prototype.constructor = <file.grammarName>Listener;
+export class <file.grammarName>Listener extends antlr4.tree.ParseTreeListener {
+    constructor() {
+        super();
+    }
 
 <file.listenerNames:{lname |
-// Enter a parse tree produced by <file.parserName>#<lname>.
-<file.grammarName>Listener.prototype.enter<lname; format="cap"> = function(ctx) {
-\};
+    // Enter a parse tree produced by <file.parserName>#<lname>.
+    enter<lname; format="cap"> (ctx) {
+    \};
 
-// Exit a parse tree produced by <file.parserName>#<lname>.
-<file.grammarName>Listener.prototype.exit<lname; format="cap"> = function(ctx) {
-\};
+    // Exit a parse tree produced by <file.parserName>#<lname>.
+    exit<lname; format="cap">(ctx) {
+    \};
 
-}; separator="\n">
-
-exports.<file.grammarName>Listener = <file.grammarName>Listener;
+    }; separator="\n">
+    }
 >>
 
 
 VisitorFile(file, header) ::= <<
 <fileHeader(file.grammarFileName, file.ANTLRVersion)>
-var antlr4 = require('antlr4/index');
+import * as antlr4 from 'antlr4';
 <header>
 
 // This class defines a complete generic visitor for a parse tree produced by <file.parserName>.
@@ -789,7 +786,7 @@ _prevctx = localctx;
 
 LexerFile(lexerFile, lexer, namedActions) ::= <<
 <fileHeader(lexerFile.grammarFileName, lexerFile.ANTLRVersion)>
-var antlr4 = require('antlr4/index');
+import * as antlr4 from 'antlr4';
 
 <namedActions.header>
 
@@ -801,18 +798,15 @@ Lexer(lexer, atn, actionFuncs, sempredFuncs, superClass) ::= <<
 
 <atn>
 
-var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
+const atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
 
-var decisionsToDFA = atn.decisionToState.map( function(ds, index) { return new antlr4.dfa.DFA(ds, index); });
+const decisionsToDFA = atn.decisionToState.map( function(ds, index) { return new antlr4.dfa.DFA(ds, index); });
 
-function <lexer.name>(input) {
-	<if(superClass)><superClass><else>antlr4.Lexer<endif>.call(this, input);
-    this._interp = new antlr4.atn.LexerATNSimulator(this, atn, decisionsToDFA, new antlr4.PredictionContextCache());
-    return this;
-}
-
-<lexer.name>.prototype = Object.create(<if(superClass)><superClass><else>antlr4.Lexer<endif>.prototype);
-<lexer.name>.prototype.constructor = <lexer.name>;
+export class <lexer.name> <if(superClass)><superClass><else>antlr4.Lexer<endif> {
+    constructor (input) {
+        super(input);
+        this._interp = new antlr4.atn.LexerATNSimulator(this, atn, decisionsToDFA, new antlr4.PredictionContextCache());
+        }
 
 <lexer.name>.EOF = antlr4.Token.EOF;
 <lexer.tokens:{k | <lexer.name>.<k> = <lexer.tokens.(k)>;}; separator="\n", wrap, anchor>
