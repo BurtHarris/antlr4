@@ -29,14 +29,14 @@
  *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-var Utils = require('./../Utils');
-var Token = require('./../Token').Token;
-var RuleNode = require('./Tree').RuleNode;
-var ErrorNode = require('./Tree').ErrorNode;
-var TerminalNode = require('./Tree').TerminalNode;
-var ParserRuleContext = require('./../ParserRuleContext').ParserRuleContext;
-var RuleContext = require('./../RuleContext').RuleContext;
-var INVALID_ALT_NUMBER = require('./../atn/ATN').INVALID_ALT_NUMBER;
+import * as  Utils from '../Utils';
+import { Token } from '../Token'
+import { Tree, RuleNode, ErrorNode, TerminalNode } from './Tree'
+import { ParserRuleContext } from '../ParserRuleContext'
+import { RuleContext } from '../RuleContext'
+import { Recognizer } from '../Recognizer' 
+import { ATN } from '../atn/ATN';
+const INVALID_ALT_NUMBER = ATN.INVALID_ALT_NUMBER;
 
 
 /** A set of utility routines useful for all kinds of ANTLR trees. */
@@ -46,7 +46,7 @@ export class Trees {
     // Print out a whole tree in LISP form. {@link //getNodeText} is used on the
     //  node payloads to get the text for the nodes.  Detect
     //  parse trees and extract data appropriately.
-    static toStringTree(tree, ruleNames, recog) {
+    static toStringTree(tree: Tree, ruleNames: string[], recog?: Parser) {
         ruleNames = ruleNames || null;
         recog = recog || null;
         if (recog !== null) {
@@ -71,7 +71,7 @@ export class Trees {
         return res;
     }
 
-    static getNodeText(t, ruleNames, recog) {
+    static getNodeText(t: Tree, ruleNames: string[], recog? : Recognizer) {
         ruleNames = ruleNames || null;
         recog = recog || null;
         if (recog !== null) {
@@ -79,18 +79,14 @@ export class Trees {
         }
         if (ruleNames !== null) {
             if (t instanceof RuleContext) {
-                var altNumber = t.getAltNumber();
+                var altNumber = (t as RuleContext).getAltNumber();
                 if (altNumber != INVALID_ALT_NUMBER) {
                     return ruleNames[t.ruleIndex] + ":" + altNumber;
                 }
                 return ruleNames[t.ruleIndex];
             } else if (t instanceof ErrorNode) {
                 return t.toString();
-            } else if (t instanceof TerminalNode) {
-                if (t.symbol !== null) {
-                    return t.symbol.text;
-                }
-            }
+            } 
         }
         // no recog for rule names
         var payload = t.getPayload();
@@ -100,15 +96,15 @@ export class Trees {
         return t.getPayload().toString();
     };
 
-
-    // Return ordered list of all children of this node
-    static getChildren(t) {
-        var list = [];
-        for (var i = 0; i < t.getChildCount(); i++) {
-            list.push(t.getChild(i));
-        }
-        return list;
-    };
+    // XXX
+    // // Return ordered list of all children of this node
+    // static getChildren(t) {
+    //     var list = [];
+    //     for (var i = 0; i < t.getChildCount(); i++) {
+    //         list.push(t.getChild(i));
+    //     }
+    //     return list;
+    // };
 
     // Return a list of all ancestors of this node.  The first node of
     //  list is the root and the last is the parent of this node.

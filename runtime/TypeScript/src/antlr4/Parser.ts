@@ -29,35 +29,39 @@
 //  this SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import { Token } from './Token';
-import { ParseTreeListener } from './tree/Tree';
+import { ParseTreeListener, TerminalNode, ErrorNode } from './tree/Tree';
 import { ParserRuleContext } from './ParserRuleContext';
 import { Recognizer } from './Recognizer';
-import { DefaultErrorStrategy } from './error/ErrorStrategy';
-import ATNDeserializer =require( './atn/ATNDeserializer');
-import ATNDeserializationOptions = require( './atn/ATNDeserializationOptions');
+import { ErrorStrategy, DefaultErrorStrategy } from './error/ErrorStrategy';
 import { Lexer } from './Lexer';
+const ATNDeserializer = require( './atn/ATNDeserializer');
+const ATNDeserializationOptions = require( './atn/ATNDeserializationOptions');
 
 export class TraceListener extends ParseTreeListener {
 	constructor(public parser: Parser) {
 		super();
 	}
 
-	enterEveryRule(ctx) {
+	enterEveryRule(ctx: ParserRuleContext) {
 		console.log("enter   " + this.parser.ruleNames[ctx.ruleIndex] + ", LT(1)=" + this.parser._input.LT(1).text);
 	};
 
-	visitTerminal(node) {
+	visitTerminal(node:TerminalNode) {
 		console.log("consume " + node.symbol + " rule " + this.parser.ruleNames[this.parser._ctx.ruleIndex]);
 	};
 
-	exitEveryRule(ctx) {
+	vistErrorNode(node: ErrorNode) {
+		console.log(`error ${node.symbol} rule ${this.parser.ruleNames[this.parser._ctx.ruleIndex]}`)
+	}
+
+	exitEveryRule(ctx: ParserRuleContext) {
 		console.log("exit    " + this.parser.ruleNames[ctx.ruleIndex] + ", LT(1)=" + this.parser._input.LT(1).text);
 	};
 }
 
 // this is all the parsing support code essentially; most of it is error
 // recovery stuff.//
-export class Parser extends Recognizer {
+export class Parser extends Recognizer<Token, ParserATNSimulator> {
 
 	// this field maps from the serialized ATN string to the deserialized {@link
 	// ATN} with
@@ -65,18 +69,20 @@ export class Parser extends Recognizer {
 	//
 	// @see ATNDeserializationOptions//isGenerateRuleBypassTransitions()
 	//
-	static bypassAltsAtnCache = {};
+	private bypassAltsAtnCache = {};
 
 	// The input stream.
 	_input = null;
 	// The error handling strategy for the parser. The default value is a new
 	// instance of {@link DefaultErrorStrategy}.
-	_errHandler = new DefaultErrorStrategy();
-	_precedenceStack = [];
+	_errHandler: ErrorStrategy = new DefaultErrorStrategy();
+	
+	_precedenceStack: number[] = [] ;
 
 	// The {@link ParserRuleContext} object for the currently executing rule.
 	// this is always non-null during the parsing process.
 	_ctx: ParserRuleContext = null;
+
 	// Specifies whether or not the parser should construct a parse tree during
 	// the parsing process. The default value is {@code true}.
 	protected _buildParseTrees = true;

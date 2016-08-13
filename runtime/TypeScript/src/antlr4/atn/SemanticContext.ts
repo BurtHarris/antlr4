@@ -40,7 +40,7 @@
 
 import { Recognizer } from '../Recognizer';
 import { RuleContext } from '../RuleContext';
-var Set = require('./../Utils').Set;
+//var Set = require('./../Utils').Set;
 
 class SemanticContext {
 	static NONE = new Predicate();

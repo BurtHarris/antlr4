@@ -57,14 +57,17 @@ import { Interval } from './IntervalSet';
 import { Recognizer } from './Recognizer';
 
 export class RuleContext implements RuleNode {
-	public children: RuleContext[] = [];
-	private _ruleIndex;
-	constructor(public parentCtx : RuleContext = null, public invokingState = -1) {
+	public children: RuleNode[] = [];
+	public ruleIndex = -1;
+	constructor(
+		public parentCtx: RuleContext = null,
+		public invokingState = -1
+	) {
 	}
 
 	depth() {
 		var n = 0;
-		var p = this;
+		var p : RuleContext = this;
 		while (p !== null) {
 			p = p.parentCtx;
 			n += 1;
@@ -72,7 +75,7 @@ export class RuleContext implements RuleNode {
 		return n;
 	};
 
-	getParent() : RuleNode { 
+	getParent(): RuleNode {
 		return this.parentCtx;
 	}
 
@@ -128,11 +131,11 @@ export class RuleContext implements RuleNode {
 	// option contextSuperClass.
 	setAltNumber(altNumber) { }
 
-	getChild(i : number) {
+	getChild(i: number) {
 		return null;
 	};
 
-	getChildCount() : number  {
+	getChildCount(): number {
 		return 0;
 	};
 
@@ -145,18 +148,14 @@ export class RuleContext implements RuleNode {
 	// (root child1 .. childN). Print just a node if this is a leaf.
 	//
 
-	toStringTree(ruleNames? :string[], recog? : Recognizer) {
-		if ( ruleNames instanceof Recognizer ) {
-			recog = (ruleNames as Recognizer);
-			ruleNames = null;
-		}
+	toStringTree(recog?: Parser, ruleNames?: string[]) {
 		return Trees.toStringTree(this, ruleNames, recog);
 	};
 
 	toString(ruleNames, stop) {
 		ruleNames = ruleNames || null;
 		stop = stop || null;
-		var p = this;
+		var p: RuleContext = this;
 		var s = "[";
 		while (p !== null && p !== stop) {
 			if (ruleNames === null) {
@@ -164,7 +163,7 @@ export class RuleContext implements RuleNode {
 					s += p.invokingState;
 				}
 			} else {
-				var ri = p._ruleIndex;
+				var ri = p.ruleIndex;
 				var ruleName = (ri >= 0 && ri < ruleNames.length) ? ruleNames[ri]
 					: "" + ri;
 				s += ruleName;

@@ -32,40 +32,31 @@
 
 import { Token } from './../Token';
 import { NoViableAltException, LexerNoViableAltException, InputMismatchException, FailedPredicateException,
-    ParseCancellationException } from './Errors';
+         ParseCancellationException } from './Errors';
 import { ATNState } from './../atn/ATNState';
 import { Interval, IntervalSet } from '../IntervalSet';
 import { Recognizer } from '../Recognizer';
 import { Parser } from '../Parser';
+import { RecognitionException } from '../Error';
 
-class ErrorStrategy {
-    constructor() {
-    }
+export interface ErrorStrategy {
+    reset(recognizer: Parser) 
 
-    reset(recognizer: Recognizer) {
-    };
+    recoverInline(recognizer: Parser)
 
-    recoverInline(recognizer: Recognizer) {
-    };
+    recover(recognizer: Parser, e: RecognitionException) 
 
-    recover(recognizer: Recognizer, e) {
-    };
+    sync(recognizer: Parser) 
 
-    sync(recognizer: Recognizer) {
-    };
+    inErrorRecoveryMode(recognizer: Parser)
 
-    inErrorRecoveryMode(recognizer: Recognizer) {
-    };
-
-    reportError(recognizer: Recognizer) {
-    };
-
+    reportError(recognizer: Parser, e: RecognitionException ) 
 }
 
 // This is the default implementation of {@link ANTLRErrorStrategy} used for
 // error reporting and recovery in ANTLR parsers.
 //
-export class DefaultErrorStrategy extends ErrorStrategy {
+export class DefaultErrorStrategy implements ErrorStrategy {
 
     // Indicates whether the error strategy is currently "recovering from an
     // error". This is used to suppress reporting multiple error messages while
@@ -85,12 +76,11 @@ export class DefaultErrorStrategy extends ErrorStrategy {
     lastErrorStates = null;
 
     constructor() {
-        super()
     }
 
     // <p>The default implementation simply calls {@link //endErrorCondition} to
     // ensure that the handler is not in error recovery mode.</p>
-    reset(recognizer: Recognizer) {
+    reset(recognizer: Parser) {
         this.endErrorCondition(recognizer);
     };
 
@@ -100,11 +90,11 @@ export class DefaultErrorStrategy extends ErrorStrategy {
     //
     // @param recognizer the parser instance
     //
-    beginErrorCondition(recognizer: Recognizer) {
+    beginErrorCondition(recognizer: Parser) {
         this.errorRecoveryMode = true;
     };
 
-    inErrorRecoveryMode(recognizer: Recognizer) {
+    inErrorRecoveryMode(recognizer: Parser) {
         return this.errorRecoveryMode;
     };
 
@@ -114,7 +104,7 @@ export class DefaultErrorStrategy extends ErrorStrategy {
     //
     // @param recognizer
     //
-    endErrorCondition(recognizer: Recognizer) {
+    endErrorCondition(recognizer: Parser) {
         this.errorRecoveryMode = false;
         this.lastErrorStates = null;
         this.lastErrorIndex = -1;
@@ -125,7 +115,7 @@ export class DefaultErrorStrategy extends ErrorStrategy {
     //
     // <p>The default implementation simply calls {@link //endErrorCondition}.</p>
     //
-    reportMatch(recognizer: Recognizer) {
+    reportMatch(recognizer: Parser) {
         this.endErrorCondition(recognizer);
     };
 
@@ -563,7 +553,7 @@ export class DefaultErrorStrategy extends ErrorStrategy {
             -1, -1, current.line, current.column);
     };
 
-    getExpectedTokens(recognizer: Recognizer) {
+    getExpectedTokens(recognizer: Parser) {
         return recognizer.getExpectedTokens();
     };
 

@@ -49,7 +49,7 @@
 // this situation occurs.</li>
 // </ul>
 
-const  BitSet = require('../Utils').BitSet;
+//const  BitSet = require('../Utils').BitSet;
 import { ErrorListener, BaseErrorListener } from './ErrorListener';
 import { Interval } from '../IntervalSet';
 

@@ -33,22 +33,31 @@
 import { Token } from './Token';
 import { RuleContext } from './RuleContext';
 import { ATN } from './ATN/ATN';
-import { ErrorListener, ConsoleErrorListener,
-         ProxyErrorListener} from './error/ErrorListener';
+import { ATNSimulator } from './ATN/ATNSimulator'
+import { RecognitionException, ErrorListener, ConsoleErrorListener, ProxyErrorListener} from './error';
 
-export class Recognizer {
-    static tokenTypeMapCache = {};
-    static ruleIndexMapCache = {};
-    // Deprecated
-    tokenNames: Array<string> = [];
-    ruleNames: Array<string> = [];
+export abstract class Recognizer<Symbol, ATNInterpreter extends ATNSimulator> {
+    // 
+    // CONSIDER: Typescript enum might be a better choice.
+    //
+    protected tokenTypeMapCache: Map<string, number>;
+    protected ruleIndexMapCache: Map<string, number>;
+    
+    //  Concerete subclasses must populate these 
+    abstract getTokenNames() : string[];
+    abstract getRuleNames() : string[];
+    abstract getLiteralNames(): string[];
+    abstract getSymbolicNames(): string[];
 
     private _listeners: Array<ErrorListener> = [ConsoleErrorListener.INSTANCE];
-    _interp = null;
+    protected _interp : ATNInterpreter = null;
     private _stateNumber = -1;
     atn: ATN = null;
 
-    constructor() {}
+    constructor() {
+        this.tokenTypeMapCache = Recognizer.createMap( this.getTokenNames() );
+        this.ruleIndexMapCache = Recognizer.createMap( this.getRuleNames() );
+    }
 
     checkVersion(toolVersion) {
         var runtimeVersion = "4.5.3";
@@ -65,54 +74,25 @@ export class Recognizer {
         this._listeners = [];
     };
 
-    public getTokenTypeMap() {
-        var tokenNames = this.tokenNames;
-        if (tokenNames === null) {
-            throw ("The current recognizer does not provide a list of token names.");
+    private static createMap(names: string[]) {
+        if (name === null) {
+            throw (new Error("The current recognizer does not provide a list of names."));
         }
-        var result = this.tokenTypeMapCache[tokenNames];
-        if (result === undefined) {
-            result = tokenNames.reduce(function (o, k, i) { o[k] = i; });
-            result.EOF = Token.EOF;
-            this.tokenTypeMapCache[tokenNames] = result;
-        }
-        return result;
-    };
-
-    // Get a map from rule names to rule indexes.
-    //
-    // <p>Used for XPath and tree pattern compilation.</p>
-    //
-    getRuleIndexMap() {
-        var ruleNames = this.ruleNames;
-        if (ruleNames === null) {
-            throw ("The current recognizer does not provide a list of rule names.");
-        }
-        var result = this.ruleIndexMapCache[ruleNames];
-        if (result === undefined) {
-            result = ruleNames.reduce((o, k, i) => { o[k] = i; });
-            this.ruleIndexMapCache[ruleNames] = result;
-        }
+        var result = new Map<string, number>();
+        names.forEach( (v, i, a) => result[v] = i )
+        result['EOF'] = Token.EOF;
         return result;
     };
 
     getTokenType(tokenName) {
-        var ttype = this.getTokenTypeMap()[tokenName];
-        if (ttype !== undefined) {
-            return ttype;
-        } else {
-            return Token.INVALID_TYPE;
-        }
+        return this.tokenTypeMapCache[tokenName] || Token.INVALID_TYPE;
     };
 
 
     // What is the error header, normally line/character position information?//
-    getErrorHeader(e) {
-        var line = e.getOffendingToken().line;
-        var column = e.getOffendingToken().column;
-        return "line " + line + ":" + column;
-    };
-
+    getErrorHeader(e: RecognitionException ) {
+        return `line ${e.offendingToken.line}:${e.offendingToken.column}`;
+    }
 
     // How should a token be displayed in an error message? The default
     //  is to display just the text, but during development you might
@@ -170,4 +150,6 @@ export class Recognizer {
     public set state(state) {
         this._stateNumber = state;
     }
+
+    protected getSerializedATN(): string { throw new Error('getSerializedATN not implemented')}
 }

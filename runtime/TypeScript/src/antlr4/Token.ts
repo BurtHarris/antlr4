@@ -35,14 +35,14 @@
 
 export class Token {
 	public source = null;
-	public type = null; // token type of the token
-	public channel = null; // The parser ignores everything not on DEFAULT_CHANNEL
-	public start = null; // optional; return -1 if not implemented.
-	public stop = null; // optional; return -1 if not implemented.
-	public tokenIndex = null; // from 0..n-1 of the token object in the input stream
-	public line = null; // line=1..n of the 1st character
-	public column = null; // beginning of the line at which it occurs, 0..n-1
-	public _text = null; // text of the token.
+	public type: number = null; // token type of the token
+	public channel: number = null; // The parser ignores everything not on DEFAULT_CHANNEL
+	public start: number = null; // optional; return -1 if not implemented.
+	public stop: number = null; // optional; return -1 if not implemented.
+	public tokenIndex: number = null; // from 0..n-1 of the token object in the input stream
+	public line: number = null; // line=1..n of the 1st character
+	public column: number = null; // beginning of the line at which it occurs, 0..n-1
+	public _text:string = null; // text of the token.
 
 
 	constructor() {

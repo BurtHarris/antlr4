@@ -39,9 +39,7 @@ import { Parser } from '../Parser';
 import { RuleContext } from '../RuleContext';
 import { ParserRuleContext } from '../ParserRuleContext';
 
-//export Utils = require('../Utils.js');
-
-
+import * as Utils from '../Utils';
 
 export interface Tree {
 	getChild(i: number): Tree;
@@ -56,22 +54,22 @@ export interface SyntaxTree extends Tree {
 }
 
 export interface ParseTree extends SyntaxTree {
-	accept(visitor: ParseTreeVisitor<SyntaxTree>);
-	getParent(): ParseTree;
-	getChild(i: number): ParseTree;
+	getSourceInterval() : Interval
 	getText(): string;
-	toStringTree(parser: Parser): string;
-
 	isErrorNode?(): boolean;
 }
 
 export interface TerminalNode extends ParseTree {
-
+	/*readonly*/ symbol: Token
+	accept(visitor: ParseTreeVisitor<ParseTree>);
+	getParent(): ParseTree;
+	getChild(i: number): ParseTree;
+	getText(): string;
+	toStringTree(parser: Parser): string;
 }
 
 export interface ErrorNode extends TerminalNode {
 	symbol: Token;
-
 }
 
 export interface RuleNode extends ParseTree {
@@ -185,7 +183,7 @@ function visitAtom(visitor, ctx) {
 
 export class TerminalNodeImpl extends TerminalNode {
 	parentCtx = null;
-	constructor(private symbol) {
+	constructor(public symbol: Token) {
 		super();
 
 	}

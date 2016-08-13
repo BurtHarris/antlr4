@@ -1,3 +1,7 @@
+import {Interval} from './IntervalSet'
+import * as Utils from "./Utils";
+
+export {Interval} from './IntervalSet'
 
 export interface IntStream {
     consume(): void;                   // Consumes the current symbol in the stream
@@ -14,17 +18,13 @@ export interface CharStream extends IntStream {
 
 }
 
-export * from "./atn";
-export * from "./dfa/index";
+export {Recognizer} from './Recognizer'
 export * from "./tree/index";
 export * from "./error/index";
 export {Token, CommonToken} from "./Token";
 export {InputStream} from "./InputStream";
-export * from "./FileStream";
-export * from "./CommonTokenStream";
 export * from "./Lexer";
 export * from "./Parser";
-export {redoctopmCpmtextCacje } from "./PredictionContext";
+export { PredictionContext } from "./PredictionContext";
 export * from "./ParserRuleContext";
 export * from "./IntervalSet";
-export * from "./Utils";

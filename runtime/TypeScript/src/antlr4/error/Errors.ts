@@ -34,12 +34,10 @@
 //  in the input, where it is in the ATN, the rule invocation stack,
 //  and what kind of problem occurred.
 
+import {IntStream, CharStream, ParserRuleContext, Recognizer, Token, Lexer, Parser, Interval  
+    } from '../index';
+
 import {PredicateTransition} from '../atn/Transition';
-import {Recognizer} from '../Recognizer';
-import {Token} from '../Token';
-import {Lexer} from '../Lexer';
-import {Parser} from '../Parser';
-import {IntStream, CharStream, ParserRuleContext} from '../index.d';
 
 export class RecognitionException extends Error {
     message: string;
@@ -145,9 +143,8 @@ export class NoViableAltException extends RecognitionException {
             input: input || recognizer.getInputStream(),
             ctx: ctx || recognizer._ctx
         });
-        this.offendingToken |= recognizer.getCurrentToken();
-        this.startToken |= recognizer.getCurrentToken();
-
+        if (!this.offendingToken) this.offendingToken = recognizer.getCurrentToken();
+        if (!this.startToken) this.startToken = recognizer.getCurrentToken();
     }
 }
 
@@ -167,10 +164,14 @@ export class InputMismatchException extends RecognitionException {
 }
 
 export class FailedPredicateException extends RecognitionException {
-    constructor(recognizer, predicate, message) {
+    ruleIndex: number; 
+    predicateIndex: number;
+    constructor(recognizer: Parser, private predicate?: string, message?: string) {
         super({
-            message: this.formatMessage(predicate, message || null), recognizer: recognizer,
-            input: recognizer.getInputStream(), ctx: recognizer._ctx
+            message: FailedPredicateException.formatMessage(predicate, message || null),
+            recognizer: recognizer,
+            input: recognizer.getInputStream(), 
+            ctx: recognizer._ctx
         });
         var s = recognizer._interp.atn.states[recognizer.state];
         var trans = s.transitions[0];
@@ -181,11 +182,10 @@ export class FailedPredicateException extends RecognitionException {
             this.ruleIndex = 0;
             this.predicateIndex = 0;
         }
-        this.predicate = predicate;
         this.offendingToken = recognizer.getCurrentToken();
     }
 
-    formatMessage(predicate, message) {
+    private static formatMessage(predicate, message) {
         if (message !== null) {
             return message;
         } else {

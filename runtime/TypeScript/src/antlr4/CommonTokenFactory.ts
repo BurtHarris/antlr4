@@ -35,7 +35,7 @@
 // {@link CommonToken} objects.
 //
 
-import {Token, CommonToken} from './Token';
+import {Token, CommonToken, CharStream, TokenSource} from './index';
 
 export interface TokenFactory {
     create( source: [TokenSource, CharStream], type: number, text:string, 

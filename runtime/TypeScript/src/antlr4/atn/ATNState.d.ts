@@ -31,4 +31,17 @@
 //
 
 export class ATNState {
-    }
+    static INVALID_TYPE: number;
+    static BASIC: number;
+    static RULE_START: number;
+    static BLOCK_START: number;
+    static PLUS_BLOCK_START: number;
+    static STAR_BLOCK_START: number;
+    static TOKEN_START: number;
+    static RULE_STOP: number;
+    static BLOCK_END: number;
+    static STAR_LOOP_BACK: number;
+    static STAR_LOOP_ENTRY: number;
+    static PLUS_LOOP_BACK: number;
+    static LOOP_END: number;
+}

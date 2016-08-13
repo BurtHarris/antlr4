@@ -52,25 +52,23 @@
 //  satisfy the superclass interface.
 import { Token } from './Token';
 import { RuleContext } from './RuleContext';
-import { Tree, ParseTree, TerminalNode, TerminalNodeImpl,  ErrorNodeImpl } from './tree/Tree';
+import { Tree, ParseTree, RuleNode, TerminalNodeImpl, ErrorNodeImpl } from './tree/Tree';
 import { Interval } from "./IntervalSet";
 import { RecognitionException } from './error/Errors'
 
 const INVALID_INTERVAL = Interval.INVALID_INTERVAL;
 
-export class ParserRuleContext extends RuleContext { 
+export class ParserRuleContext extends RuleContext {
 	static EMPTY = new ParserRuleContext();
-	
-	ruleIndex = -1;
 
     // * If we are debugging or building a parse tree for a visitor,
     // we need to track all of the tokens and rule invocations associated
     // with this rule's context. This is empty for parsing w/o tree constr.
     // operation because we don't the need to track the details about
     // how we parse this rule.
-    // /
-    children: Array<ParseTree> = null;
-    
+    //
+
+
 	// The exception that forced this rule to return. If the rule successfully
     // completed, this is {@code null}.
     exception: RecognitionException = null;
@@ -78,158 +76,160 @@ export class ParserRuleContext extends RuleContext {
     start: Token = null;
     stop: Token = null;
 
-   constructor(parent? : ParserRuleContext, invokingStateNumber? : number) {
-	super(  parent || null, invokingStateNumber || null);
-}
+	constructor(
+		parent?: ParserRuleContext,
+		invokingStateNumber?: number
+	) {
+		super(parent || null, invokingStateNumber || null);
+	}
 
-// * COPY a ctx (I'm deliberately not using copy constructor)///
-copyFrom(ctx: ParserRuleContext) {
-    // from RuleContext
-    this.parentCtx = ctx.parentCtx;
-    this.invokingState = ctx.invokingState;
-    this.children = null;
-    this.start = ctx.start;
-    this.stop = ctx.stop;
-};
+	// * COPY a ctx (I'm deliberately not using copy constructor)///
+	copyFrom(ctx: ParserRuleContext) {
+		// from RuleContext
+		this.parentCtx = ctx.parentCtx;
+		this.invokingState = ctx.invokingState;
+		this.children = null;
+		this.start = ctx.start;
+		this.stop = ctx.stop;
+	};
 
-// Double dispatch methods for listeners
-enterRule(listener) {
-};
+	// Double dispatch methods for listeners
+	enterRule(listener) {
+	};
 
-exitRule(listener) {
-};
+	exitRule(listener) {
+	};
 
-// * Does not set parent link; other add methods do that///
-addChild(child: TerminalNode ): TerminalNode;
-addChild(child: ParserRuleContext ): ParserRuleContext;
-addChild( child: ParseTree ): ParseTree {
-    if (this.children === null) {
-        this.children = [];
-    }
-    this.children.push(child);
-    return child;
-};
+	// * Does not set parent link; other add methods do that///
 
-// * Used by enterOuterAlt to toss out a RuleContext previously added as
-// we entered a rule. If we have // label, we will need to remove
-// generic ruleContext object.
-// /
-removeLastChild() : void {
-    if (this.children !== null) {
-        this.children.pop();
-    }
-};
+	addChild(child: RuleNode): RuleNode {
+		if (this.children === null) {
+			this.children = [];
+		}
+		this.children.push(child);
+		return child;
+	};
 
-addTokenNode(token: Token) {
-    var node = new TerminalNodeImpl(token);
-    this.addChild(node);
-    node.parentCtx = this;
-    return node;
-};
+	// * Used by enterOuterAlt to toss out a RuleContext previously added as
+	// we entered a rule. If we have // label, we will need to remove
+	// generic ruleContext object.
+	// /
+	removeLastChild(): void {
+		if (this.children !== null) {
+			this.children.pop();
+		}
+	};
 
-addErrorNode( badToken: Token ) {
-    var node = new ErrorNodeImpl(badToken);
-    this.addChild(node);
-    node.parentCtx = this;
-    return node;
-};
+	addTokenNode(token: Token) {
+		var node = new TerminalNodeImpl(token);
+		this.addChild(node);
+		node.parentCtx = this;
+		return node;
+	};
 
-getChild(i: number, type?: any): ParseTree {
-	type = type || null;
-	if (type === null) {
-		return this.children.length>=i ? this.children[i] : null;
-	} else {
-		for(var j=0; j<this.children.length; j++) {
-			var child = this.children[j];
-			if(child instanceof type) {
-				if(i===0) {
-					return child;
-				} else {
-					i -= 1;
+	addErrorNode(badToken: Token) {
+		var node = new ErrorNodeImpl(badToken);
+		this.addChild(node);
+		node.parentCtx = this;
+		return node;
+	};
+
+	getChild(i: number, type?: any): ParseTree {
+		type = type || null;
+		if (type === null) {
+			return this.children.length >= i ? this.children[i] : null;
+		} else {
+			for (var j = 0; j < this.children.length; j++) {
+				var child = this.children[j];
+				if (child instanceof type) {
+					if (i === 0) {
+						return child;
+					} else {
+						i -= 1;
+					}
 				}
 			}
+			return null;
 		}
+	};
+
+
+	getToken(ttype:number, i:number) : ParseTree {
+		for (var j = 0; j < this.children.length; j++) {
+			var child = this.children[j];
+			if (child.getPayload instanceof Token) {
+				const token = child.getPayload() as Token;
+				if (token.type === ttype) {
+					if (i === 0) {
+						return child;
+					} else {
+						i -= 1;
+					}
+				}
+
+			}
 		return null;
-    }
-};
+	};
 
-
-getToken(ttype, i) {
-	for(var j=0; j<this.children.length; j++) {
-		var child = this.children[j];
-		if (child instanceof TerminalNode) {
-			if (child.symbol.type === ttype) {
-				if(i===0) {
-					return child;
-				} else {
-					i -= 1;
+	getTokens(ttype): ParseTree[] {
+		if (this.children === null) {
+			return [];
+		} else {
+			var tokens = [];
+			for (var j = 0; j < this.children.length; j++) {
+				if (this.children[j] instanceof TerminalNodeImpl) {
+					const child = this.children[j] as TerminalNodeImpl
+					if (child.symbol.type === ttype) {
+						tokens.push(child);
+					}
 				}
 			}
-        }
-	}
-    return null;
-};
+			return tokens;
+		}
+	};
 
-getTokens(ttype ) {
-    if (this.children=== null) {
-        return [];
-    } else {
-		var tokens = [];
-		for(var j=0; j<this.children.length; j++) {
-			var child = this.children[j];
-			if (child instanceof TerminalNode) {
-				if (child.symbol.type === ttype) {
-					tokens.push(child);
+	getTypedRuleContext(ctxType, i) {
+		return this.getChild(i, ctxType);
+	};
+
+	getTypedRuleContexts(ctxType) {
+		if (this.children === null) {
+			return [];
+		} else {
+			var contexts = [];
+			for (var j = 0; j < this.children.length; j++) {
+				var child = this.children[j];
+				if (child instanceof ctxType) {
+					contexts.push(child);
 				}
 			}
+			return contexts;
 		}
-		return tokens;
-    }
-};
+	};
 
-getTypedRuleContext(ctxType, i) {
-    return this.getChild(i, ctxType);
-};
-
-getTypedRuleContexts(ctxType) {
-    if (this.children=== null) {
-        return [];
-    } else {
-		var contexts = [];
-		for(var j=0; j<this.children.length; j++) {
-			var child = this.children[j];
-			if (child instanceof ctxType) {
-				contexts.push(child);
-			}
+	getChildCount() {
+		if (this.children === null) {
+			return 0;
+		} else {
+			return this.children.length;
 		}
-		return contexts;
+	};
+
+	getSourceInterval() {
+		if (this.start === null || this.stop === null) {
+			return INVALID_INTERVAL;
+		} else {
+			return new Interval(this.start.tokenIndex, this.stop.tokenIndex);
+		}
+	};
+
+}
+
+export class InterpreterRuleContext {
+	constructor(parent, invokingStateNumber, ruleIndex) {
+		ParserRuleContext.call(parent, invokingStateNumber);
+		this.ruleIndex = ruleIndex;
+		return this;
 	}
-};
-
-getChildCount() {
-	if (this.children=== null) {
-		return 0;
-	} else {
-		return this.children.length;
-	}
-};
-
-getSourceInterval() {
-    if( this.start === null || this.stop === null) {
-        return INVALID_INTERVAL;
-    } else {
-        return new Interval(this.start.tokenIndex, this.stop.tokenIndex);
-    }
-};
-
 }
 
-class InterpreterRuleContext { 
-   constructor(parent, invokingStateNumber, ruleIndex) {
-	ParserRuleContext.call(parent, invokingStateNumber);
-    this.ruleIndex = ruleIndex;
-    return this;
-}
-}
-
-exports.ParserRuleContext = ParserRuleContext;
