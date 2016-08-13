@@ -2,13 +2,15 @@
     "compilerOptions": {
         "module": "commonjs",
         "target": "es2015",
-        "outDir": "antlr-node",
+        "outDir": "dist",
+        "sourceRoot": "src/antlr4",
         "noImplicitAny": false,
         "experimentalDecorators": false,
         "sourceMap": true
     },
     "include": [
-        "index.ts"
+        "typings/index.d.ts",
+        "src/antlr4/index.ts"
     ]
 
 }
