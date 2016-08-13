@@ -49,22 +49,16 @@
 // this situation occurs.</li>
 // </ul>
 
-var BitSet = require('./../Utils').BitSet;
-var ErrorListener = require('./ErrorListener').ErrorListener;
-var Interval = require('./../IntervalSet').Interval;
+const  BitSet = require('../Utils').BitSet;
+import { ErrorListener, BaseErrorListener } from './ErrorListener';
+import { Interval } from '../IntervalSet';
 
-function DiagnosticErrorListener(exactOnly) {
-	ErrorListener.call(this);
-	exactOnly = exactOnly || true;
-	// whether all ambiguities or only exact ambiguities are reported.
-	this.exactOnly = exactOnly;
-	return this;
-}
+export class DiagnosticErrorListener extends BaseErrorListener {
+	constructor(private exactOnly = true) {
+		super()
+	}
 
-DiagnosticErrorListener.prototype = Object.create(ErrorListener.prototype);
-DiagnosticErrorListener.prototype.constructor = DiagnosticErrorListener;
-
-DiagnosticErrorListener.prototype.reportAmbiguity = function(recognizer, dfa,
+reportAmbiguity(recognizer, dfa,
 		startIndex, stopIndex, exact, ambigAlts, configs) {
 	if (this.exactOnly && !exact) {
 		return;
@@ -78,7 +72,7 @@ DiagnosticErrorListener.prototype.reportAmbiguity = function(recognizer, dfa,
 	recognizer.notifyErrorListeners(msg);
 };
 
-DiagnosticErrorListener.prototype.reportAttemptingFullContext = function(
+reportAttemptingFullContext(
 		recognizer, dfa, startIndex, stopIndex, conflictingAlts, configs) {
 	var msg = "reportAttemptingFullContext d=" +
 			this.getDecisionDescription(recognizer, dfa) +
@@ -87,7 +81,7 @@ DiagnosticErrorListener.prototype.reportAttemptingFullContext = function(
 	recognizer.notifyErrorListeners(msg);
 };
 
-DiagnosticErrorListener.prototype.reportContextSensitivity = function(
+reportContextSensitivity(
 		recognizer, dfa, startIndex, stopIndex, prediction, configs) {
 	var msg = "reportContextSensitivity d=" +
 			this.getDecisionDescription(recognizer, dfa) +
@@ -96,7 +90,7 @@ DiagnosticErrorListener.prototype.reportContextSensitivity = function(
 	recognizer.notifyErrorListeners(msg);
 };
 
-DiagnosticErrorListener.prototype.getDecisionDescription = function(recognizer, dfa) {
+getDecisionDescription(recognizer, dfa) {
 	var decision = dfa.decision;
 	var ruleIndex = dfa.atnStartState.ruleIndex;
 
@@ -122,7 +116,7 @@ DiagnosticErrorListener.prototype.getDecisionDescription = function(recognizer, 
 // @return Returns {@code reportedAlts} if it is not {@code null}, otherwise
 // returns the set of alternatives represented in {@code configs}.
 //
-DiagnosticErrorListener.prototype.getConflictingAlts = function(reportedAlts, configs) {
+getConflictingAlts(reportedAlts, configs) {
 	if (reportedAlts !== null) {
 		return reportedAlts;
 	}
@@ -131,6 +125,6 @@ DiagnosticErrorListener.prototype.getConflictingAlts = function(reportedAlts, co
 		result.add(configs.items[i].alt);
 	}
 	return "{" + result.values().join(", ") + "}";
-};
+}
 
-exports.DiagnosticErrorListener = DiagnosticErrorListener;
+}

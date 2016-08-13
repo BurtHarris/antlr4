@@ -1,13 +1,14 @@
 {
     "compilerOptions": {
         "module": "commonjs",
-        "target": "es5",
+        "target": "es2015",
+        "outDir": "antlr-node",
         "noImplicitAny": false,
         "experimentalDecorators": false,
         "sourceMap": true
     },
     "include": [
-        "inputStream.ts"
+        "index.ts"
     ]
 
 }
