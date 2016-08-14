@@ -30,8 +30,8 @@
 
 import {Token} from '../Token';
 
-var LL1Analyzer = require('./../LL1Analyzer').LL1Analyzer;
-var IntervalSet = require('./../IntervalSet').IntervalSet;
+import { LL1Analyzer } from './../LL1Analyzer';
+import { IntervalSet } from './../IntervalSet';
 
 export class ATN {
     static INVALID_ALT_NUMBER = 0;

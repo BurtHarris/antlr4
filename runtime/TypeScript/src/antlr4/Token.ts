@@ -175,5 +175,3 @@ export class CommonToken extends Token {
 	};
 }
 
-exports.Token = Token;
-exports.CommonToken = CommonToken;

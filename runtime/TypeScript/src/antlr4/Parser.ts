@@ -34,8 +34,8 @@ import { ParserRuleContext } from './ParserRuleContext';
 import { Recognizer } from './Recognizer';
 import { ErrorStrategy, DefaultErrorStrategy } from './error/ErrorStrategy';
 import { Lexer } from './Lexer';
-const ATNDeserializer = require( './atn/ATNDeserializer');
-const ATNDeserializationOptions = require( './atn/ATNDeserializationOptions');
+import { ATNDeserializer } from './atn/ATNDeserializer';
+import { ATNDeserializationOptions } from  './atn/ATNDeserializationOptions';
 
 export class TraceListener extends ParseTreeListener {
 	constructor(public parser: Parser) {
@@ -61,7 +61,7 @@ export class TraceListener extends ParseTreeListener {
 
 // this is all the parsing support code essentially; most of it is error
 // recovery stuff.//
-export class Parser extends Recognizer<Token, ParserATNSimulator> {
+export abstract class Parser extends Recognizer<Token, ParserATNSimulator> {
 
 	// this field maps from the serialized ATN string to the deserialized {@link
 	// ATN} with
@@ -72,16 +72,16 @@ export class Parser extends Recognizer<Token, ParserATNSimulator> {
 	private bypassAltsAtnCache = {};
 
 	// The input stream.
-	_input = null;
+	protected _input = null;
 	// The error handling strategy for the parser. The default value is a new
 	// instance of {@link DefaultErrorStrategy}.
-	_errHandler: ErrorStrategy = new DefaultErrorStrategy();
+	protected _errHandler: ErrorStrategy = new DefaultErrorStrategy();
 	
-	_precedenceStack: number[] = [] ;
+	protected _precedenceStack: number[] = [] ;
 
 	// The {@link ParserRuleContext} object for the currently executing rule.
 	// this is always non-null during the parsing process.
-	_ctx: ParserRuleContext = null;
+	protected _ctx: ParserRuleContext = null;
 
 	// Specifies whether or not the parser should construct a parse tree during
 	// the parsing process. The default value is {@code true}.
@@ -92,13 +92,13 @@ export class Parser extends Recognizer<Token, ParserATNSimulator> {
 	// later call to {@link //setTrace}{@code (false)}. The listener itself is
 	// implemented as a parser listener so this field is not directly used by
 	// other parser methods.
-	_tracer = null;
+	protected _tracer = null;
 	// The list of {@link ParseTreeListener} listeners registered to receive
 	// events during the parse.
-	_parseListeners = null;
+	protected _parseListeners : ParseTreeListener[] = null;
 	// The number of syntax errors reported during parsing. this value is
 	// incremented each time {@link //notifyErrorListeners} is called.
-	_syntaxErrors = 0;
+	protected _syntaxErrors = 0;
 
 
 	constructor(input) {

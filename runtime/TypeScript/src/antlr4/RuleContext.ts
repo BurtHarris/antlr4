@@ -50,20 +50,24 @@
 //  @see ParserRuleContext
 ///
 
-import { RuleNode } from './tree/Tree';
+import { ParseTree, RuleNode } from './tree/Tree';
 import { ATN } from './atn/ATN';
 import { Trees } from './tree/Trees';
 import { Interval } from './IntervalSet';
 import { Recognizer } from './Recognizer';
+import { Parser } from './Parser';
+import { ParserRuleContext } from './ParserRuleContext'
 
-export class RuleContext implements RuleNode {
-	public children: RuleNode[] = [];
+export abstract class RuleContext implements RuleNode {
 	public ruleIndex = -1;
+	static /*readonly*/ EMPTY = new ParserRuleContext();
 	constructor(
 		public parentCtx: RuleContext = null,
 		public invokingState = -1
 	) {
 	}
+
+	abstract getChildren() : ParseTree[];
 
 	depth() {
 		var n = 0;
@@ -110,7 +114,7 @@ export class RuleContext implements RuleNode {
 		if (this.getChildCount() === 0) {
 			return "";
 		} else {
-			return this.children.map(function (child) {
+			return this.getChildren().map(function (child) {
 				return child.getText();
 			}).join("");
 		}

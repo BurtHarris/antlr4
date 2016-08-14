@@ -30,8 +30,8 @@
 //  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///
 
-const DFAState = require('./../dfa/DFAState').DFAState;
-const ATNConfigSet = require('./ATNConfigSet').ATNConfigSet;
+import {DFAState}  from './../dfa/DFAState';
+import {ATNConfigSet} from './ATNConfigSet';
 
 import {ATN} from './ATN';
 import {PredictionContext, PredictionContextCache } from '../PredictionContext';

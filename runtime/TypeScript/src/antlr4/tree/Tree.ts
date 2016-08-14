@@ -46,7 +46,7 @@ export interface Tree {
 	getChildCount(): number;
 	getParent(): Tree;
 	getPayload(): any;
-	toStringTree(): string;
+	toStringTree(parser?: Parser, ruleNames?: string[]): string;
 }
 
 export interface SyntaxTree extends Tree {
@@ -59,13 +59,14 @@ export interface ParseTree extends SyntaxTree {
 	isErrorNode?(): boolean;
 }
 
-export interface TerminalNode extends ParseTree {
-	/*readonly*/ symbol: Token
+export abstract class TerminalNode implements RuleNode {
+	/*readonly*/ symbol: Token = null
+	parentCtx: ParseTree = null;
 	accept(visitor: ParseTreeVisitor<ParseTree>);
-	getParent(): ParseTree;
+	getParent() { return parentCtx; }
 	getChild(i: number): ParseTree;
 	getText(): string;
-	toStringTree(parser: Parser): string;
+	toStringTree(parser: Parser, ruleNames?: string[]): string;
 }
 
 export interface ErrorNode extends TerminalNode {
@@ -182,7 +183,6 @@ function visitAtom(visitor, ctx) {
 
 
 export class TerminalNodeImpl extends TerminalNode {
-	parentCtx = null;
 	constructor(public symbol: Token) {
 		super();
 

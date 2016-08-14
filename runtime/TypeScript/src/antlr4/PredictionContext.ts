@@ -31,18 +31,20 @@
 ///
 
 import { RuleContext } from './RuleContext';
+import { StringHashed, StringHashedSet } from './Utils';
+import { ATN } from './atn/ATN'
 
-export abstract class PredictionContext {
+export abstract class PredictionContext implements StringHashed {
     // Represents {@code $} in local context prediction, which means wildcard.
     // {@code//+x =//}.
     // /
-    static EMPTY = null;
+    static /*readonly*/ EMPTY = new EmptyPredictionContext();
 
     // Represents {@code $} in an array in full context mode, when {@code $}
     // doesn't mean wildcard: {@code $ + x = [$,x]}. Here,
     // {@code $} = {@link //EMPTY_RETURN_STATE}.
     // /
-    static EMPTY_RETURN_STATE = 0x7FFFFFFF;
+    static /*readonly*/ EMPTY_RETURN_STATE = 0x7FFFFFFF;
 
 
     static globalNodeCount = 1;
@@ -52,6 +54,12 @@ export abstract class PredictionContext {
     constructor(public cachedHashString) {
     }
 
+    abstract getParent(i: number): PredictionContext;
+
+    equals(other: PredictionContext): boolean {
+        return this === other
+            || this.cachedHashString == other.cachedHashString && this.getParent(0) == other.getParent(0);
+    }
 
 
     // Stores the computed hash code of this {@link PredictionContext}. The hash
@@ -81,17 +89,17 @@ export abstract class PredictionContext {
 
     // This means only the {@link //EMPTY} context is in set.
     isEmpty() {
-        return this === PredictionContext.EMPTY;
+        return this === PredictionContext.EMPTY as PredictionContext;
     };
 
     abstract getReturnState(index: number): number;
-    abstract length: number;
+    abstract getLength(): number;
 
     hasEmptyPath() {
-        return this.getReturnState(this.length - 1) === PredictionContext.EMPTY_RETURN_STATE;
+        return this.getReturnState(this.getLength() - 1) === PredictionContext.EMPTY_RETURN_STATE;
     };
 
-    hashString() {
+    hashString(): string {
         return this.cachedHashString;
     };
 
@@ -104,105 +112,73 @@ export abstract class PredictionContext {
     }
 
 
-static getCachedPredictionContext(
-    context: PredictionContext, 
-    contextCache: PredictionContextCache, 
-    visited: Object
-    ) {
-    if (context.isEmpty()) {
-        return context;
-    }
-    var existing = visited[context.hashString] as PredictionContext;
-    if (existing !== null) {
-        return existing;
-    }
-    existing = contextCache.get(context);
-    if (existing !== null) {
-        visited[context] = existing;
-        return existing;
-    }
-    var changed = false;
-    var parents = [];
-    for (var i = 0; i < parents.length; i++) {
-        var parent = getCachedPredictionContext(context.getParent(i), contextCache, visited);
-        if (changed || parent !== context.getParent(i)) {
-            if (!changed) {
-                parents = [];
-                for (var j = 0; j < context.length; j++) {
-                    parents[j] = context.getParent(j);
-                }
-                changed = true;
-            }
-            parents[i] = parent;
+    static getCachedPredictionContext(
+        context: PredictionContext,
+        contextCache: StringHashedSet<PredictionContext>,
+        visited: StringHashedSet<PredictionContext>
+    ): PredictionContext {
+        if (context.isEmpty()) {
+            return context;
         }
-    }
-    if (!changed) {
-        contextCache.add(context);
-        visited[context] = context;
-        return context;
-    }
-    var updated = null;
-    if (parents.length === 0) {
-        updated = PredictionContext.EMPTY;
-    } else if (parents.length === 1) {
-        updated = SingletonPredictionContext.create(parents[0], context
-            .getReturnState(0));
-    } else {
-        updated = new ArrayPredictionContext(parents, context.returnStates);
-    }
-    contextCache.add(updated);
-    visited[updated] = updated;
-    visited[context] = updated;
+        var existing = visited.get(context);
+        if (existing !== null) {
+            return existing;
+        }
+        existing = contextCache.get(context);
+        if (existing !== null) {
+            visited.add(existing);
+            return existing;
+        }
+        var changed = false;
+        var parents = [];
+        for (var i = 0; i < parents.length; i++) {
+            var parent = PredictionContext.getCachedPredictionContext(context.getParent(i), contextCache, visited);
+            if (changed || parent !== context.getParent(i)) {
+                if (!changed) {
+                    parents = [];
+                    for (var j = 0; j < context.getLength(); j++) {
+                        parents[j] = context.getParent(j);
+                    }
+                    changed = true;
+                }
+                parents[i] = parent;
+            }
+        }
+        if (!changed) {
+            contextCache.add(context);
+            visited.add(context);
+            return context;
+        }
+        var updated = null;
+        if (parents.length === 0) {
+            updated = PredictionContext.EMPTY;
+        } else if (parents.length === 1) {
+            updated = SingletonPredictionContext.create(parents[0], context
+                .getReturnState(0));
+        } else {
+            updated = new ArrayPredictionContext(parents,
+                (context as ArrayPredictionContext).returnStates
+            );
+        }
+        contextCache.add(updated);
+        visited.add(updated);
+        visited.add(context);
 
-    return updated;
-}
-
+        return updated;
+    }
 }
 
 // Used to cache {@link PredictionContext} objects. Its used for the shared
 // context cash associated with contexts in DFA states. This cache
 // can be used for both lexers and parsers.
 
-export class PredictionContextCache {
-    cache = new Map<PredictionContext, PredictionContext>() ;
-    constructor() {
-        return this;
-    }
-
-    // Add a context to the cache and return it. If the context already exists,
-    // return that one instead and do not add a new context to the cache.
-    // Protect shared cache from unsafe thread access.
-    //
-    add(ctx) {
-        if (ctx === PredictionContext.EMPTY) {
-            return PredictionContext.EMPTY;
-        }
-        var existing = this.cache[ctx] || null;
-        if (existing !== null) {
-            return existing;
-        }
-        this.cache[ctx] = ctx;
-        return ctx;
-    };
-
-    get(ctx) {
-        return this.cache[ctx] || null;
-    };
-
-    get length() {
-        return this.cache.length;
-    }
-
-}
-
 class SingletonPredictionContext extends PredictionContext {
-    constructor(public parentCtx, public returnState) {
-
-        super(parent !== null ? calculateHashString(parent, returnState)
-            : calculateEmptyHashString());
+    constructor(private _parentCtx: PredictionContext, private _returnState: number) {
+        super(parent !== null ? PredictionContext.calculateHashString(parent, _returnState)
+            : PredictionContext.calculateEmptyHashString());
     }
 
-    static create = function (parent, returnState) {
+    static create(parent: PredictionContext, returnState: number): SingletonPredictionContext {
         if (returnState === PredictionContext.EMPTY_RETURN_STATE && parent === null) {
             // someone can pass in the bits of an array ctx that mean $
             return PredictionContext.EMPTY;
@@ -211,16 +187,16 @@ class SingletonPredictionContext extends PredictionContext {
         }
     };
 
-    get length() {
+    getLength() {
         return 1;
     }
 
-    getParent(index) {
-        return this.parentCtx;
+    getParent(index: number): PredictionContext {
+        return this._parentCtx;
     };
 
     getReturnState(index) {
-        return this.returnState;
+        return this._returnState;
     };
 
     equals(other) {
@@ -231,12 +207,12 @@ class SingletonPredictionContext extends PredictionContext {
         } else if (this.hashString() !== other.hashString()) {
             return false; // can't be same if hash is different
         } else {
-            if (this.returnState !== other.returnState)
+            if (this._returnState !== other.returnState)
                 return false;
-            else if (this.parentCtx == null)
+            else if (this._parentCtx == null)
                 return other.parentCtx == null
             else
-                return this.parentCtx.equals(other.parentCtx);
+                return this._parentCtx.equals(other.parentCtx);
         }
     };
 
@@ -245,26 +221,24 @@ class SingletonPredictionContext extends PredictionContext {
     };
 
     toString() {
-        var up = this.parentCtx === null ? "" : this.parentCtx.toString();
+        var up = this._parentCtx === null ? "" : this._parentCtx.toString();
         if (up.length === 0) {
-            if (this.returnState === this.EMPTY_RETURN_STATE) {
+            if (this._returnState === PredictionContext.EMPTY_RETURN_STATE) {
                 return "$";
             } else {
-                return "" + this.returnState;
+                return "" + this._returnState;
             }
         } else {
-            return "" + this.returnState + " " + up;
+            return "" + this._returnState + " " + up;
         }
     };
+}
 
-class EmptyPredictionContext {
+
+class EmptyPredictionContext extends SingletonPredictionContext {
     constructor() {
-        SingletonPredictionContext.call(this, null, PredictionContext.EMPTY_RETURN_STATE);
-        return this;
+        super(null, PredictionContext.EMPTY_RETURN_STATE);
     }
-
-    EmptyPredictionContext.prototype = Object.create(SingletonPredictionContext.prototype);
-    EmptyPredictionContext.prototype.constructor = EmptyPredictionContext;
 
     isEmpty() {
         return true;
@@ -274,35 +248,27 @@ class EmptyPredictionContext {
         return null;
     };
 
-    getReturnState(index) {
-        return this.returnState;
-    };
-
     equals(other) {
         return this === other;
     };
 
+    get length() {
+        return 0;
+    }
+
     toString() {
         return "$";
     };
+}
 
-    PredictionContext.EMPTY = new EmptyPredictionContext();
-
-class ArrayPredictionContext {
-    constructor(parents, returnStates) {
+export class ArrayPredictionContext extends PredictionContext {
+    constructor(public parents, public returnStates) {
         // Parent can be null only if full ctx mode and we make an array
         // from {@link //EMPTY} and non-empty. We merge {@link //EMPTY} by using
         // null parent and
         // returnState == {@link //EMPTY_RETURN_STATE}.
-        var hash = calculateHashString(parents, returnStates);
-        PredictionContext.call(this, hash);
-        this.parents = parents;
-        this.returnStates = returnStates;
-        return this;
+        super(PredictionContext.calculateHashString(parents, returnStates));
     }
-
-    ArrayPredictionContext.prototype = Object.create(PredictionContext.prototype);
-    ArrayPredictionContext.prototype.constructor = ArrayPredictionContext;
 
     isEmpty() {
         // since EMPTY_RETURN_STATE can only appear in the last position, we
@@ -310,61 +276,61 @@ class ArrayPredictionContext {
         return this.returnStates[0] === PredictionContext.EMPTY_RETURN_STATE;
     };
 
-    Object.defineProperty(ArrayPredictionContext.prototype, "length", {
-    get: function() {
+    getLength() {
         return this.returnStates.length;
     }
-});
 
-getParent(index) {
-    return this.parents[index];
-};
 
-getReturnState(index) {
-    return this.returnStates[index];
-};
+    getParent(index) {
+        return this.parents[index];
+    };
 
-equals(other) {
-    if (this === other) {
-        return true;
-    } else if (!(other instanceof ArrayPredictionContext)) {
-        return false;
-    } else if (this.hashString !== other.hashString()) {
-        return false; // can't be same if hash is different
-    } else {
-        return this.returnStates === other.returnStates &&
-            this.parents === other.parents;
-    }
-};
+    getReturnState(index) {
+        return this.returnStates[index];
+    };
 
-toString() {
-    if (this.isEmpty()) {
-        return "[]";
-    } else {
-        var s = "[";
-        for (var i = 0; i < this.returnStates.length; i++) {
-            if (i > 0) {
-                s = s + ", ";
-            }
-            if (this.returnStates[i] === PredictionContext.EMPTY_RETURN_STATE) {
-                s = s + "$";
-                continue;
-            }
-            s = s + this.returnStates[i];
-            if (this.parents[i] !== null) {
-                s = s + " " + this.parents[i];
-            } else {
-                s = s + "null";
-            }
+    equals(other) {
+        if (this === other) {
+            return true;
+        } else if (!(other instanceof ArrayPredictionContext)) {
+            return false;
+        } else if (this.hashString !== other.hashString()) {
+            return false; // can't be same if hash is different
+        } else {
+            return this.returnStates === other.returnStates &&
+                this.parents === other.parents;
         }
-        return s + "]";
-    }
-};
+    };
+
+    toString() {
+        if (this.isEmpty()) {
+            return "[]";
+        } else {
+            var s = "[";
+            for (var i = 0; i < this.returnStates.length; i++) {
+                if (i > 0) {
+                    s = s + ", ";
+                }
+                if (this.returnStates[i] === PredictionContext.EMPTY_RETURN_STATE) {
+                    s = s + "$";
+                    continue;
+                }
+                s = s + this.returnStates[i];
+                if (this.parents[i] !== null) {
+                    s = s + " " + this.parents[i];
+                } else {
+                    s = s + "null";
+                }
+            }
+            return s + "]";
+        }
+    };
+}
 
 // Convert a {@link RuleContext} tree to a {@link PredictionContext} graph.
 // Return {@link //EMPTY} if {@code outerContext} is empty or null.
 // /
-function predictionContextFromRuleContext(atn, outerContext) {
+function predictionContextFromRuleContext(atn: ATN, outerContext: RuleContext): PredictionContext {
     if (outerContext === undefined || outerContext === null) {
         outerContext = RuleContext.EMPTY;
     }
@@ -566,7 +532,7 @@ function mergeSingletons(a, b, rootIsWildcard, mergeCache) {
 // @param rootIsWildcard {@code true} if this is a local-context merge,
 // otherwise false to indicate a full-context merge
 // /
-function mergeRoot(a, b, rootIsWildcard) {
+function mergeRoot(a, b, rootIsWildcard): PredictionContext {
     if (rootIsWildcard) {
         if (a === PredictionContext.EMPTY) {
             return PredictionContext.EMPTY; // // + b =//

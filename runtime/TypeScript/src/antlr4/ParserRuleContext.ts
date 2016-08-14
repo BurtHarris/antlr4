@@ -52,14 +52,16 @@
 //  satisfy the superclass interface.
 import { Token } from './Token';
 import { RuleContext } from './RuleContext';
-import { Tree, ParseTree, RuleNode, TerminalNodeImpl, ErrorNodeImpl } from './tree/Tree';
+import { Tree, ParseTree, RuleNode, TerminalNode, TerminalNodeImpl, ErrorNodeImpl } from './tree/Tree';
 import { Interval } from "./IntervalSet";
 import { RecognitionException } from './error/Errors'
 
 const INVALID_INTERVAL = Interval.INVALID_INTERVAL;
 
-export class ParserRuleContext extends RuleContext {
+export  class ParserRuleContext extends RuleContext {
 	static EMPTY = new ParserRuleContext();
+	protected _children = new Array<ParseTree>();
+
 
     // * If we are debugging or building a parse tree for a visitor,
     // we need to track all of the tokens and rule invocations associated
@@ -80,17 +82,19 @@ export class ParserRuleContext extends RuleContext {
 		parent?: ParserRuleContext,
 		invokingStateNumber?: number
 	) {
-		super(parent || null, invokingStateNumber || null);
+		super(parent, invokingStateNumber);
 	}
+
+	getChildren() { return this._children }
 
 	// * COPY a ctx (I'm deliberately not using copy constructor)///
 	copyFrom(ctx: ParserRuleContext) {
 		// from RuleContext
 		this.parentCtx = ctx.parentCtx;
 		this.invokingState = ctx.invokingState;
-		this.children = null;
 		this.start = ctx.start;
 		this.stop = ctx.stop;
+		this._children = new Array<ParseTree>();
 	};
 
 	// Double dispatch methods for listeners
@@ -102,11 +106,11 @@ export class ParserRuleContext extends RuleContext {
 
 	// * Does not set parent link; other add methods do that///
 
-	addChild(child: RuleNode): RuleNode {
-		if (this.children === null) {
-			this.children = [];
+	addChild(child: ParseTree):ParseTree {
+		if (this._children === null) {
+			this._children = [];
 		}
-		this.children.push(child);
+		this._children.push(child);
 		return child;
 	};
 
@@ -115,8 +119,8 @@ export class ParserRuleContext extends RuleContext {
 	// generic ruleContext object.
 	// /
 	removeLastChild(): void {
-		if (this.children !== null) {
-			this.children.pop();
+		if (this._children !== null) {
+			this._children.pop();
 		}
 	};
 
@@ -137,10 +141,10 @@ export class ParserRuleContext extends RuleContext {
 	getChild(i: number, type?: any): ParseTree {
 		type = type || null;
 		if (type === null) {
-			return this.children.length >= i ? this.children[i] : null;
+			return this._children.length >= i ? this._children[i] : null;
 		} else {
-			for (var j = 0; j < this.children.length; j++) {
-				var child = this.children[j];
+			for (var j = 0; j < this._children.length; j++) {
+				var child = this._children[j];
 				if (child instanceof type) {
 					if (i === 0) {
 						return child;
@@ -154,9 +158,9 @@ export class ParserRuleContext extends RuleContext {
 	};
 
 
-	getToken(ttype:number, i:number) : ParseTree {
-		for (var j = 0; j < this.children.length; j++) {
-			var child = this.children[j];
+	getToken(ttype: number, i: number): TerminalNode {
+		for (var j = 0; j < this._children.length; j++) {
+			var child = this._children[j];
 			if (child.getPayload instanceof Token) {
 				const token = child.getPayload() as Token;
 				if (token.type === ttype) {
@@ -166,19 +170,19 @@ export class ParserRuleContext extends RuleContext {
 						i -= 1;
 					}
 				}
-
 			}
+		}
 		return null;
-	};
+	}
 
-	getTokens(ttype): ParseTree[] {
-		if (this.children === null) {
+	getTokens(ttype): TerminalNode[] {
+		if (this._children === null) {
 			return [];
 		} else {
 			var tokens = [];
-			for (var j = 0; j < this.children.length; j++) {
-				if (this.children[j] instanceof TerminalNodeImpl) {
-					const child = this.children[j] as TerminalNodeImpl
+			for (var j = 0; j < this._children.length; j++) {
+				if (this._children[j] instanceof TerminalNodeImpl) {
+					const child = this._children[j] as TerminalNodeImpl
 					if (child.symbol.type === ttype) {
 						tokens.push(child);
 					}
@@ -193,12 +197,12 @@ export class ParserRuleContext extends RuleContext {
 	};
 
 	getTypedRuleContexts(ctxType) {
-		if (this.children === null) {
+		if (this._children === null) {
 			return [];
 		} else {
 			var contexts = [];
-			for (var j = 0; j < this.children.length; j++) {
-				var child = this.children[j];
+			for (var j = 0; j < this._children.length; j++) {
+				var child = this._children[j];
 				if (child instanceof ctxType) {
 					contexts.push(child);
 				}
@@ -208,10 +212,10 @@ export class ParserRuleContext extends RuleContext {
 	};
 
 	getChildCount() {
-		if (this.children === null) {
+		if (this._children === null) {
 			return 0;
 		} else {
-			return this.children.length;
+			return this._children.length;
 		}
 	};
 

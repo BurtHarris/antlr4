@@ -40,9 +40,11 @@
 
 import { Recognizer } from '../Recognizer';
 import { RuleContext } from '../RuleContext';
-//var Set = require('./../Utils').Set;
+import { Parser } from '../parser';
 
-class SemanticContext {
+//import { Set } from './../Utils';
+
+abstract class SemanticContext {
 	static NONE = new Predicate();
 
 	constructor() {
@@ -60,9 +62,7 @@ class SemanticContext {
 	// prediction, so we passed in the outer context here in case of context
 	// dependent predicate evaluation.</p>
 	//
-	evaluate(parser: Recognizer, outerContext: RuleContext) : boolean {
-		throw new Error('evaluate() not implemented');
-	};
+	abstract evaluate(parser: Parser, outerContext: RuleContext) : boolean ;
 
 	//
 	// Evaluate the precedence predicates for the context and reduce the result.
@@ -82,7 +82,7 @@ class SemanticContext {
 	// semantic context after precedence predicates are evaluated.</li>
 	// </ul>
 	//
-	evalPrecedence(parser: Recognizer, outerContext: RuleContext) : SemanticContext {
+	evalPrecedence(parser: Parser, outerContext: RuleContext) : SemanticContext {
 		return this;
 	};
 
@@ -128,7 +128,7 @@ export class Predicate extends SemanticContext {
 		super();
 	}
 
-	evaluate(parser: Recognizer, outerContext: RuleContext ) {
+	evaluate(parser: Parser, outerContext: RuleContext ) {
 		var localctx = this.isCtxDependent ? outerContext : null;
 		return parser.sempred(localctx, this.ruleIndex, this.predIndex);
 	};
@@ -159,11 +159,11 @@ export class PrecedencePredicate extends SemanticContext {
 		super()
 	}
 
-	evaluate(parser: Recognizer, outerContext: RuleContext ) {
+	evaluate(parser: Parser, outerContext: RuleContext ) {
 		return parser.precpred(outerContext, this.precedence);
 	};
 
-	evalPrecedence(parser: Recognizer, outerContext: RuleContext ) {
+	evalPrecedence(parser: Parser, outerContext: RuleContext ) {
 		if (parser.precpred(outerContext, this.precedence)) {
 			return SemanticContext.NONE;
 		} else {
@@ -193,8 +193,6 @@ export class PrecedencePredicate extends SemanticContext {
 		return "{" + this.precedence + ">=prec}?";
 	};
 
-
-
 	static filterPrecedencePredicates(set) {
 		var result = [];
 		set.values().map(function (context) {
@@ -210,7 +208,7 @@ export class PrecedencePredicate extends SemanticContext {
 // is false.
 //
 class AND extends SemanticContext {
-	opnds: Array<SemanticContext> = [];
+	opnds: SemanticContext[] = [];
 
 	constructor(a, b) {
 		super();
@@ -240,7 +238,7 @@ class AND extends SemanticContext {
 			});
 			operands.add(reduced);
 		}
-		this.opnds = operands.values();
+		this.opnds = Array.from(operands.values());
 	}
 
 	equals(other) {
@@ -263,7 +261,7 @@ class AND extends SemanticContext {
 	// The evaluation of predicates by this context is short-circuiting, but
 	// unordered.</p>
 	//
-	evaluate(parser: Recognizer, outerContext: RuleContext ) {
+	evaluate(parser: Parser, outerContext: RuleContext ) {
 		for (var i = 0; i < this.opnds.length; i++) {
 			if (!this.opnds[i].evaluate(parser, outerContext)) {
 				return false;
@@ -272,7 +270,7 @@ class AND extends SemanticContext {
 		return true;
 	};
 
-	evalPrecedence(parser: Recognizer, outerContext: RuleContext ) {
+	evalPrecedence(parser: Parser, outerContext: RuleContext ) {
 		var differs = false;
 		var operands = [];
 		for (var i = 0; i < this.opnds.length; i++) {
@@ -318,7 +316,7 @@ class OR extends SemanticContext {
 
 	constructor(a: SemanticContext, b: SemanticContext) {
 		super();
-		var operands = new Set();
+		var operands = new Set<SemanticContext>();
 		if (a instanceof OR) {
 			a.opnds.map(function (o) {
 				operands.add(o);
@@ -343,7 +341,7 @@ class OR extends SemanticContext {
 			var reduced = s[s.length - 1];
 			operands.add(reduced);
 		}
-		this.opnds = operands.values();
+		this.opnds = Array.from( operands.values() );
 		return this;
 	}
 
@@ -367,7 +365,7 @@ class OR extends SemanticContext {
 	// The evaluation of predicates by this context is short-circuiting, but
 	// unordered.</p>
 	//
-	evaluate(parser: Recognizer, outerContext: RuleContext ) {
+	evaluate(parser: Parser, outerContext: RuleContext ) {
 		for (var i = 0; i < this.opnds.length; i++) {
 			if (this.opnds[i].evaluate(parser, outerContext)) {
 				return true;
@@ -376,7 +374,7 @@ class OR extends SemanticContext {
 		return false;
 	};
 
-	evalPrecedence(parser: Recognizer, outerContext: RuleContext ) {
+	evalPrecedence(parser: Parser, outerContext: RuleContext ) {
 		var differs = false;
 		var operands = [];
 		for (var i = 0; i < this.opnds.length; i++) {

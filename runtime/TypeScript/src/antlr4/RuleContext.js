@@ -53,7 +53,7 @@ var RuleNode = require('./tree/Tree').RuleNode;
 var INVALID_INTERVAL = require('./tree/Tree').INVALID_INTERVAL;
 var INVALID_ALT_NUMBER = require('./atn/ATN').INVALID_ALT_NUMBER;
 
-function RuleContext(parent, invokingState) {
+function RuleContext(protected parentCtx: RuleConext, protected invokingState: number ) {
 	RuleNode.call(this);
 	// What context invoked this rule?
 	this.parentCtx = parent || null;
@@ -64,10 +64,7 @@ function RuleContext(parent, invokingState) {
 	return this;
 }
 
-RuleContext.prototype = Object.create(RuleNode.prototype);
-RuleContext.prototype.constructor = RuleContext;
-
-RuleContext.prototype.depth = function() {
+depth() {
 	var n = 0;
 	var p = this;
 	while (p !== null) {
@@ -79,21 +76,21 @@ RuleContext.prototype.depth = function() {
 
 // A context is empty if there is no invoking state; meaning nobody call
 // current context.
-RuleContext.prototype.isEmpty = function() {
+isEmpty() {
 	return this.invokingState === -1;
 };
 
 // satisfy the ParseTree / SyntaxTree interface
 
-RuleContext.prototype.getSourceInterval = function() {
+getSourceInterval() {
 	return INVALID_INTERVAL;
 };
 
-RuleContext.prototype.getRuleContext = function() {
+getRuleContext() {
 	return this;
 };
 
-RuleContext.prototype.getPayload = function() {
+getPayload() {
 	return this;
 };
 
@@ -104,7 +101,7 @@ RuleContext.prototype.getPayload = function() {
 // added to the parse trees, they will not appear in the output of this
 // method.
 // /
-RuleContext.prototype.getText = function() {
+getText() {
 	if (this.getChildCount() === 0) {
 		return "";
 	} else {
@@ -120,24 +117,24 @@ RuleContext.prototype.getText = function() {
 // a subclass of ParserRuleContext with backing field and set
 // option contextSuperClass.
 // to set it.
-RuleContext.prototype.getAltNumber = function() { return INVALID_ALT_NUMBER; }
+getAltNumber() { return INVALID_ALT_NUMBER; }
 
 // Set the outer alternative number for this context node. Default
 // implementation does nothing to avoid backing field overhead for
 // trees that don't need it.  Create
 // a subclass of ParserRuleContext with backing field and set
 // option contextSuperClass.
-RuleContext.prototype.setAltNumber = function(altNumber) { }
+setAltNumber(altNumber) { }
 
-RuleContext.prototype.getChild = function(i) {
+getChild(i) {
 	return null;
 };
 
-RuleContext.prototype.getChildCount = function() {
+getChildCount() {
 	return 0;
 };
 
-RuleContext.prototype.accept = function(visitor) {
+accept(visitor) {
 	return visitor.visitChildren(this);
 };
 
@@ -150,11 +147,11 @@ var Trees = require('./tree/Trees').Trees;
 // (root child1 .. childN). Print just a node if this is a leaf.
 //
 
-RuleContext.prototype.toStringTree = function(ruleNames, recog) {
+toStringTree(ruleNames, recog) {
 	return Trees.toStringTree(this, ruleNames, recog);
 };
 
-RuleContext.prototype.toString = function(ruleNames, stop) {
+toString(ruleNames, stop) {
 	ruleNames = ruleNames || null;
 	stop = stop || null;
 	var p = this;

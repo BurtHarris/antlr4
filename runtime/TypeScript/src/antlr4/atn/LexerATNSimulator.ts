@@ -50,15 +50,15 @@ import { Token, Lexer } from '../index';
 import { ATN } from './ATN';
 import { ATNSimulator } from './ATNSimulator';
 
-var DFAState = require('./../dfa/DFAState').DFAState;
-var ATNConfigSet = require('./ATNConfigSet').ATNConfigSet;
-var OrderedATNConfigSet = require('./ATNConfigSet').OrderedATNConfigSet;
+import { DFAState } from './../dfa/DFAState';
+import { ATNConfigSet } from './ATNConfigSet';
+import { OrderedATNConfigSet } from './ATNConfigSet';
 import {PredictionContext, SingletonPredictionContext } from '../PredictionContext';
-var RuleStopState = require('./ATNState').RuleStopState;
-var LexerATNConfig = require('./ATNConfig').LexerATNConfig;
-var Transition = require('./Transition').Transition;
-var LexerActionExecutor = require('./LexerActionExecutor').LexerActionExecutor;
-var LexerNoViableAltException = require('./../error/Errors').LexerNoViableAltException;
+import { RuleStopState } from './ATNState';
+import { LexerATNConfig } from './ATNConfig';
+import { Transition } from './Transition';
+import { LexerActionExecutor } from './LexerActionExecutor';
+import { LexerNoViableAltException } from './../error/Errors';
 
 
 class SimState {

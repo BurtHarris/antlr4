@@ -1,6 +1,6 @@
 /*jslint smarttabs:true */
 
-var Token = require('./Token').Token;
+import { Token } from './Token';
 
 /* stop is not included! */
 export class Interval {
