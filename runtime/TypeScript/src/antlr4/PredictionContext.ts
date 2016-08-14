@@ -172,7 +172,7 @@ export abstract class PredictionContext implements StringHashed {
 // context cash associated with contexts in DFA states. This cache
 // can be used for both lexers and parsers.
 
-class SingletonPredictionContext extends PredictionContext {
+export class SingletonPredictionContext extends PredictionContext {
     constructor(private _parentCtx: PredictionContext, private _returnState: number) {
         super(parent !== null ? PredictionContext.calculateHashString(parent, _returnState)
             : PredictionContext.calculateEmptyHashString());
@@ -330,7 +330,7 @@ export class ArrayPredictionContext extends PredictionContext {
 // Convert a {@link RuleContext} tree to a {@link PredictionContext} graph.
 // Return {@link //EMPTY} if {@code outerContext} is empty or null.
 // /
-function predictionContextFromRuleContext(atn: ATN, outerContext: RuleContext): PredictionContext {
+export function predictionContextFromRuleContext(atn: ATN, outerContext: RuleContext): PredictionContext {
     if (outerContext === undefined || outerContext === null) {
         outerContext = RuleContext.EMPTY;
     }
@@ -357,7 +357,7 @@ function calculateListsHashString(parents, returnStates) {
     return s;
 }
 
-function merge(a, b, rootIsWildcard, mergeCache) {
+export function merge(a, b, rootIsWildcard, mergeCache) {
     // share same graph if both same
     if (a === b) {
         return a;

@@ -41,15 +41,20 @@
 import { Recognizer } from '../Recognizer';
 import { RuleContext } from '../RuleContext';
 import { Parser } from '../parser';
+import { StringHashed } from '../Utils';
 
 //import { Set } from './../Utils';
 
-abstract class SemanticContext {
+export abstract class SemanticContext implements StringHashed {
 	static NONE = new Predicate();
 
 	constructor() {
 	}
 
+    abstract equals(other: StringHashed): boolean
+    abstract hashString(): string
+
+	
 	// For context independent predicates, we evaluate them without a local
 	// context (i.e., null context). That way, we can evaluate them without
 	// having to create proper rule-specific context during prediction (as
@@ -85,6 +90,7 @@ abstract class SemanticContext {
 	evalPrecedence(parser: Parser, outerContext: RuleContext) : SemanticContext {
 		return this;
 	};
+	
 
 	static andContext(a: SemanticContext, b: SemanticContext) : SemanticContext {
 		if (a === null || a === SemanticContext.NONE) {

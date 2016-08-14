@@ -44,11 +44,11 @@ import { Lexer } from './Lexer';
 import { Interval } from './IntervalSet';
 
 // this is just to keep meaningful parameter types to Parser
-function TokenStream() {
+export function TokenStream() {
 	return this;
 }
 
-function BufferedTokenStream(tokenSource) {
+export function BufferedTokenStream(tokenSource) {
 
 	TokenStream.call(this);
 	// The {@link TokenSource} from which tokens for this stream are fetched.
@@ -302,7 +302,7 @@ BufferedTokenStream.prototype.getHiddenTokensToRight = function(tokenIndex,
 	}
 	this.lazyInit();
 	if (tokenIndex < 0 || tokenIndex >= this.tokens.length) {
-		throw "" + tokenIndex + " not in 0.." + this.tokens.length - 1;
+		throw new Error(`${tokenIndex} not in 0..${this.tokens.length - 1}`);
 	}
 	var nextOnChannel = this.nextTokenOnChannel(tokenIndex + 1,
 			Lexer.DEFAULT_TOKEN_CHANNEL);
@@ -322,7 +322,7 @@ BufferedTokenStream.prototype.getHiddenTokensToLeft = function(tokenIndex,
 	}
 	this.lazyInit();
 	if (tokenIndex < 0 || tokenIndex >= this.tokens.length) {
-		throw "" + tokenIndex + " not in 0.." + this.tokens.length - 1;
+		throw `${tokenIndex} not in 0..${this.tokens.length - 1}`;
 	}
 	var prevOnChannel = this.previousTokenOnChannel(tokenIndex - 1,
 			Lexer.DEFAULT_TOKEN_CHANNEL);
@@ -397,4 +397,4 @@ BufferedTokenStream.prototype.fill = function() {
 	}
 };
 
-exports.BufferedTokenStream = BufferedTokenStream;
+

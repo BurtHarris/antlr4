@@ -34,17 +34,10 @@
 //  when you construct the object.
 // 
 import { InputStream } from './InputStream';
-var isNodeJs = typeof window === 'undefined' && typeof importScripts === 'undefined';
-var fs = isNodeJs ? require("fs") : null;
+import * as fs from 'fs';
 
-function FileStream(fileName) {
-	var data = fs.readFileSync(fileName, "utf8");
-	InputStream.call(this, data);
-	this.fileName = fileName;
-	return this;
+class FileStream extends InputStream {
+	constructor(public fileName: string) {
+		super( fs.readFileSync(fileName, "utf8"));
+	}
 }
-
-FileStream.prototype = Object.create(InputStream.prototype);
-FileStream.prototype.constructor = FileStream;
-
-exports.FileStream = FileStream;

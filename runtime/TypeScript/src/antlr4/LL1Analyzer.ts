@@ -34,8 +34,8 @@ import { ATN } from './atn/ATN';
 import { ATNConfig } from './atn/ATNConfig';
 import { Interval, IntervalSet} from './IntervalSet';
 import { RuleStopState } from './atn/ATNState';
-import { RuleTransition, NotSetTransition, WildcardTransition,  AbstractPredicateTransition} from './Transition';
-const {PredictionContext, SingletonPredictionContext, predictionContextFromRuleContext} from  './PredictionContext';
+import { RuleTransition, NotSetTransition, WildcardTransition,  AbstractPredicateTransition} from './atn/Transition';
+import {PredictionContext, SingletonPredictionContext, predictionContextFromRuleContext} from  './PredictionContext';
 
 export class LL1Analyzer {
     constructor(public atn:ATN ) {

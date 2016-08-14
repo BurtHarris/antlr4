@@ -124,5 +124,3 @@ CommonTokenStream.prototype.getNumberOfOnChannelTokens = function() {
     }
     return n;
 };
-
-exports.CommonTokenStream = CommonTokenStream;

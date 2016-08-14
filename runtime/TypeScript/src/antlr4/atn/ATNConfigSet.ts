@@ -35,8 +35,9 @@
 ///
 
 import { ATN } from './ATN';
-import { Utils } from './../Utils';
-var Set = Utils.Set;
+import { ATNState } from './ATNState';
+import { ATNConfig } from './ATNConfig';
+import * as Utils from './../Utils';
 import { SemanticContext } from './SemanticContext';
 import { merge } from './../PredictionContext';
 
@@ -45,18 +46,19 @@ function hashATNConfig(c) {
 }
 
 function equalATNConfigs(a, b) {
-	if ( a===b ) {
+	if (a === b) {
 		return true;
 	}
-	if ( a===null || b===null ) {
+	if (a === null || b === null) {
 		return false;
 	}
-	return a.state.stateNumber===b.state.stateNumber &&
-		a.alt===b.alt && a.semanticContext.equals(b.semanticContext);
+	return a.state.stateNumber === b.state.stateNumber &&
+		a.alt === b.alt && a.semanticContext.equals(b.semanticContext);
 }
 
 
-function ATNConfigSet(fullCtx) {
+export class ATNConfigSet {
+	configLookup = new Utils.StringHashedSet<ATNConfig>();
 	//
 	// The reason that we need this is because we don't want the hash map to use
 	// the standard hash code and equals. We need all configurations with the
@@ -68,183 +70,179 @@ function ATNConfigSet(fullCtx) {
 	// use a hash table that lets us specify the equals/hashcode operation.
 	// All configs but hashed by (s, i, _, pi) not including context. Wiped out
 	// when we go readonly as this set becomes a DFA state.
-	this.configLookup = new Set(hashATNConfig, equalATNConfigs);
 	// Indicates that this configuration set is part of a full context
 	// LL prediction. It will be used to determine how to merge $. With SLL
 	// it's a wildcard whereas it is not for LL context merge.
-	this.fullCtx = fullCtx === undefined ? true : fullCtx;
 	// Indicates that the set of configurations is read-only. Do not
 	// allow any code to manipulate the set; DFA states will point at
 	// the sets and they must not change. This does not protect the other
 	// fields; in particular, conflictingAlts is set after
 	// we've made this readonly.
-	this.readOnly = false;
+	readOnly = false;
 	// Track the elements as they are added to the set; supports get(i)///
-	this.configs = [];
+	configs: ATNConfig[] = [];
 
 	// TODO: these fields make me pretty uncomfortable but nice to pack up info
 	// together, saves recomputation
 	// TODO: can we track conflicts as they are added to save scanning configs
 	// later?
-	this.uniqueAlt = 0;
-	this.conflictingAlts = null;
+	uniqueAlt = 0;
+	conflictingAlts = null;
 
 	// Used in parser and lexer. In lexer, it indicates we hit a pred
 	// while computing a closure operation. Don't make a DFA state from this.
-	this.hasSemanticContext = false;
-	this.dipsIntoOuterContext = false;
+	hasSemanticContext = false;
+	dipsIntoOuterContext = false;
 
-	this.cachedHashString = "-1";
+	cachedHashString = "-1";
 
-	return this;
-}
+	constructor(public fullCtx = true) {
+	}
 
-// Adding a new config means merging contexts with existing configs for
-// {@code (s, i, pi, _)}, where {@code s} is the
-// {@link ATNConfig//state}, {@code i} is the {@link ATNConfig//alt}, and
-// {@code pi} is the {@link ATNConfig//semanticContext}. We use
-// {@code (s,i,pi)} as key.
-//
-// <p>This method updates {@link //dipsIntoOuterContext} and
-// {@link //hasSemanticContext} when necessary.</p>
-// /
-ATNConfigSet.prototype.add = function(config, mergeCache) {
-	if (mergeCache === undefined) {
-		mergeCache = null;
-	}
-	if (this.readOnly) {
-		throw "This set is readonly";
-	}
-	if (config.semanticContext !== SemanticContext.NONE) {
-		this.hasSemanticContext = true;
-	}
-	if (config.reachesIntoOuterContext > 0) {
-		this.dipsIntoOuterContext = true;
-	}
-	var existing = this.configLookup.add(config);
-	if (existing === config) {
-		this.cachedHashString = "-1";
-		this.configs.push(config); // track order here
-		return true;
-	}
-	// a previous (s,i,pi,_), merge with it and save result
-	var rootIsWildcard = !this.fullCtx;
-	var merged = merge(existing.context, config.context, rootIsWildcard, mergeCache);
-	// no need to check for existing.context, config.context in cache
-	// since only way to create new graphs is "call rule" and here. We
-	// cache at both places.
-	existing.reachesIntoOuterContext = Math.max( existing.reachesIntoOuterContext, config.reachesIntoOuterContext);
-	// make sure to preserve the precedence filter suppression during the merge
-	if (config.precedenceFilterSuppressed) {
-		existing.precedenceFilterSuppressed = true;
-	}
-	existing.context = merged; // replace context; no need to alt mapping
-	return true;
-};
-
-ATNConfigSet.prototype.getStates = function() {
-	var states = new Set();
-	for (var i = 0; i < this.configs.length; i++) {
-		states.add(this.configs[i].state);
-	}
-	return states;
-};
-
-ATNConfigSet.prototype.getPredicates = function() {
-	var preds = [];
-	for (var i = 0; i < this.configs.length; i++) {
-		var c = this.configs[i].semanticContext;
-		if (c !== SemanticContext.NONE) {
-			preds.push(c.semanticContext);
+	// Adding a new config means merging contexts with existing configs for
+	// {@code (s, i, pi, _)}, where {@code s} is the
+	// {@link ATNConfig//state}, {@code i} is the {@link ATNConfig//alt}, and
+	// {@code pi} is the {@link ATNConfig//semanticContext}. We use
+	// {@code (s,i,pi)} as key.
+	//
+	// <p>This method updates {@link //dipsIntoOuterContext} and
+	// {@link //hasSemanticContext} when necessary.</p>
+	// /
+	add(config, mergeCache) {
+		if (mergeCache === undefined) {
+			mergeCache = null;
 		}
-	}
-	return preds;
-};
+		if (this.readOnly) {
+			throw "This set is readonly";
+		}
+		if (config.semanticContext !== SemanticContext.NONE) {
+			this.hasSemanticContext = true;
+		}
+		if (config.reachesIntoOuterContext > 0) {
+			this.dipsIntoOuterContext = true;
+		}
+		var existing = this.configLookup.get(config);
+		if (existing === config) {
+			this.cachedHashString = "-1";
+			this.configs.push(config); // track order here
+			return true;
+		}
+		// a previous (s,i,pi,_), merge with it and save result
+		var rootIsWildcard = !this.fullCtx;
+		var merged = merge(existing.context, config.context, rootIsWildcard, mergeCache);
+		// no need to check for existing.context, config.context in cache
+		// since only way to create new graphs is "call rule" and here. We
+		// cache at both places.
+		existing.reachesIntoOuterContext = Math.max(existing.reachesIntoOuterContext, config.reachesIntoOuterContext);
+		// make sure to preserve the precedence filter suppression during the merge
+		if (config.precedenceFilterSuppressed) {
+			existing.precedenceFilterSuppressed = true;
+		}
+		existing.context = merged; // replace context; no need to alt mapping
+		return true;
+	};
 
-Object.defineProperty(ATNConfigSet.prototype, "items", {
-	get : function() {
+	getStates() {
+		var states = new Utils.StringHashedSet<ATNState>();
+		for (var i = 0; i < this.configs.length; i++) {
+			states.add(this.configs[i].state);
+		}
+		return states;
+	};
+
+	getPredicates() {
+		var preds = [];
+		for (var i = 0; i < this.configs.length; i++) {
+			var c = this.configs[i].semanticContext;
+			if (c !== SemanticContext.NONE) {
+				preds.push(c.semanticContext);
+			}
+		}
+		return preds;
+	};
+
+	get items() {
 		return this.configs;
 	}
-});
 
-ATNConfigSet.prototype.optimizeConfigs = function(interpreter) {
-	if (this.readOnly) {
-		throw "This set is readonly";
-	}
-	if (this.configLookup.length === 0) {
-		return;
-	}
-	for (var i = 0; i < this.configs.length; i++) {
-		var config = this.configs[i];
-		config.context = interpreter.getCachedContext(config.context);
-	}
-};
+	optimizeConfigs(interpreter) {
+		if (this.readOnly) {
+			throw "This set is readonly";
+		}
+		if (this.configLookup.length === 0) {
+			return;
+		}
+		for (var i = 0; i < this.configs.length; i++) {
+			var config = this.configs[i];
+			config.context = interpreter.getCachedContext(config.context);
+		}
+	};
 
-ATNConfigSet.prototype.addAll = function(coll) {
-	for (var i = 0; i < coll.length; i++) {
-		this.add(coll[i]);
-	}
-	return false;
-};
-
-ATNConfigSet.prototype.equals = function(other) {
-	if (this === other) {
-		return true;
-	} else if (!(other instanceof ATNConfigSet)) {
+	addAll(coll) {
+		for (var i = 0; i < coll.length; i++) {
+			this.add(coll[i]);
+		}
 		return false;
-	}
-	return this.configs !== null && this.configs.equals(other.configs) &&
+	};
+
+	equals(other) {
+		if (this === other) {
+			return true;
+		} else if (!(other instanceof ATNConfigSet)) {
+			return false;
+		}
+		return this.configs !== null && this.configs.equals(other.configs) &&
 			this.fullCtx === other.fullCtx &&
 			this.uniqueAlt === other.uniqueAlt &&
 			this.conflictingAlts === other.conflictingAlts &&
 			this.hasSemanticContext === other.hasSemanticContext &&
 			this.dipsIntoOuterContext === other.dipsIntoOuterContext;
-};
+	};
 
-ATNConfigSet.prototype.hashString = function() {
-	if (this.readOnly) {
-		if (this.cachedHashString === "-1") {
-			this.cachedHashString = this.hashConfigs();
+	hashString() {
+		if (this.readOnly) {
+			if (this.cachedHashString === "-1") {
+				this.cachedHashString = this.hashConfigs();
+			}
+			return this.cachedHashString;
+		} else {
+			return this.hashConfigs();
 		}
-		return this.cachedHashString;
-	} else {
-		return this.hashConfigs();
-	}
-};
+	};
 
-ATNConfigSet.prototype.hashConfigs = function() {
-	var s = "";
-	this.configs.map(function(c) {
-		s += c.toString();
-	});
-	return s;
-};
+	hashConfigs() {
+		var s = "";
+		this.configs.map(function (c) {
+			s += c.toString();
+		});
+		return s;
+	};
 
-Object.defineProperty(ATNConfigSet.prototype, "length", {
-	get : function() {
+	Object.defineProperty(ATNConfigSet.prototype, "length", {
+	get: function () {
 		return this.configs.length;
 	}
 });
 
-ATNConfigSet.prototype.isEmpty = function() {
+isEmpty() {
 	return this.configs.length === 0;
 };
 
-ATNConfigSet.prototype.contains = function(item) {
+contains(item) {
 	if (this.configLookup === null) {
 		throw "This method is not implemented for readonly sets.";
 	}
 	return this.configLookup.contains(item);
 };
 
-ATNConfigSet.prototype.containsFast = function(item) {
+containsFast(item) {
 	if (this.configLookup === null) {
 		throw "This method is not implemented for readonly sets.";
 	}
 	return this.configLookup.containsFast(item);
 };
 
-ATNConfigSet.prototype.clear = function() {
+clear() {
 	if (this.readOnly) {
 		throw "This set is readonly";
 	}
@@ -253,14 +251,14 @@ ATNConfigSet.prototype.clear = function() {
 	this.configLookup = new Set();
 };
 
-ATNConfigSet.prototype.setReadonly = function(readOnly) {
+setReadonly(readOnly) {
 	this.readOnly = readOnly;
 	if (readOnly) {
 		this.configLookup = null; // can't mod, no need for lookup cache
 	}
 };
 
-ATNConfigSet.prototype.toString = function() {
+toString() {
 	return Utils.arrayToString(this.configs) +
 		(this.hasSemanticContext ? ",hasSemanticContext=" + this.hasSemanticContext : "") +
 		(this.uniqueAlt !== ATN.INVALID_ALT_NUMBER ? ",uniqueAlt=" + this.uniqueAlt : "") +
@@ -268,14 +266,10 @@ ATNConfigSet.prototype.toString = function() {
 		(this.dipsIntoOuterContext ? ",dipsIntoOuterContext" : "");
 };
 
-function OrderedATNConfigSet() {
-	ATNConfigSet.call(this);
-	this.configLookup = new Set();
-	return this;
+class OrderedATNConfigSet {
+	configLookup = new Utils.StringHashedSet();
+	constructor() {
+		super();
+
+	}
 }
-
-OrderedATNConfigSet.prototype = Object.create(ATNConfigSet.prototype);
-OrderedATNConfigSet.prototype.constructor = OrderedATNConfigSet;
-
-exports.ATNConfigSet = ATNConfigSet;
-exports.OrderedATNConfigSet = OrderedATNConfigSet;
