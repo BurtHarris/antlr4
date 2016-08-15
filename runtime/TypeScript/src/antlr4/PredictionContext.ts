@@ -38,7 +38,7 @@ export abstract class PredictionContext implements StringHashed {
     // Represents {@code $} in local context prediction, which means wildcard.
     // {@code//+x =//}.
     // /
-    static /*readonly*/ EMPTY = new EmptyPredictionContext();
+    static /*readonly*/ EMPTY: PredictionContext = new EmptyPredictionContext();
 
     // Represents {@code $} in an array in full context mode, when {@code $}
     // doesn't mean wildcard: {@code $ + x = [$,x]}. Here,

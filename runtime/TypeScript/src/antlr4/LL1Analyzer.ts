@@ -3,6 +3,7 @@
 //  Copyright (c) 2012 Terence Parr
 //  Copyright (c) 2012 Sam Harwell
 //  Copyright (c) 2014 Eric Vergnaud
+//  Copyright (c) 2016 Burt Harris
 //  All rights reserved.
 //
 //  Redistribution and use in source and binary forms, with or without
@@ -31,21 +32,23 @@
 
 import { Token } from './Token';
 import { ATN } from './atn/ATN';
+import { ATNState } from './atn/ATNState'
 import { ATNConfig } from './atn/ATNConfig';
 import { Interval, IntervalSet} from './IntervalSet';
+import { RuleContext } from './RuleContext'
 import { RuleStopState } from './atn/ATNState';
 import { RuleTransition, NotSetTransition, WildcardTransition,  AbstractPredicateTransition} from './atn/Transition';
-import {PredictionContext, SingletonPredictionContext, predictionContextFromRuleContext} from  './PredictionContext';
+import { PredictionContext, SingletonPredictionContext, predictionContextFromRuleContext } from  './PredictionContext';
+import { BitSet } from './BitSet';
 
 export class LL1Analyzer {
-    constructor(public atn:ATN ) {
-    }
-
     //* Special value added to the lookahead sets to indicate that we hit
     //  a predicate during analysis if {@code seeThruPreds==false}.
     ///
     static /*readonly*/ HIT_PRED = Token.INVALID_TYPE;
 
+    constructor(public atn:ATN ) {
+    }
 
     //*
     // Calculates the SLL(1) expected lookahead set for each outgoing transition
@@ -57,7 +60,7 @@ export class LL1Analyzer {
     // @param s the ATN state
     // @return the expected symbols for each outgoing transition of {@code s}.
     ///
-    getDecisionLookahead(s) {
+    getDecisionLookahead(s: ATNState) {
         if (s === null) {
             return null;
         }
@@ -96,7 +99,7 @@ export class LL1Analyzer {
     // @return The set of tokens that can follow {@code s} in the ATN in the
     // specified {@code ctx}.
     ///
-    LOOK(s, stopState, ctx) {
+    LOOK(s: ATNState, stopState: ATNState, ctx: RuleContext) {
         var r = new IntervalSet();
         var seeThruPreds = true; // ignore preds; get all lookahead
         ctx = ctx || null;
@@ -135,9 +138,9 @@ export class LL1Analyzer {
     // outermost context is reached. This parameter has no effect if {@code ctx}
     // is {@code null}.
     ///
-    _LOOK(s, stopState, ctx, look, lookBusy, calledRuleStack, seeThruPreds, addEOF) {
+    _LOOK(s: ATNState, stopState: ATNState, ctx: RuleContext, look, lookBusy: Set<ATNConfig>, calledRuleStack: BitSet, seeThruPreds:boolean, addEOF) {
         var c = new ATNConfig({ state: s, alt: 0, context: ctx }, null);
-        if (lookBusy.contains(c)) {
+        if (lookBusy.has(c)) {
             return;
         }
         lookBusy.add(c);
@@ -208,4 +211,5 @@ export class LL1Analyzer {
                 }
             }
         }
-    };
+    }
+}

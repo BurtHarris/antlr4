@@ -30,12 +30,9 @@
 
 // Represents the type of recognizer an ATN applies to.
 
-function ATNType() {
-	
+export enum ATNType {
+    LEXER = 0,
+    PARSER = 1	
 }
 
-ATNType.LEXER = 0;
-ATNType.PARSER = 1;
-
-exports.ATNType = ATNType;
 

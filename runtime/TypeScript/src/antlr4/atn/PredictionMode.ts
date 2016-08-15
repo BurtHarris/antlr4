@@ -34,7 +34,7 @@
 // ambiguities.
 
 import { Set } from './../Utils';
-import { BitSet } from './../Utils';
+import { BitSet } from '/BitSet';
 import { AltDict } from './../Utils';
 import { ATN } from './ATN';
 import { RuleStopState } from './ATNState';

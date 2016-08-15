@@ -35,8 +35,9 @@
 ///
 
 var ATN = require('./ATN').ATN;
-var Utils = require('./../Utils');
-var Set = Utils.Set;
+
+const Set = undefined;
+import * as Misc from '../misc'
 var SemanticContext = require('./SemanticContext').SemanticContext;
 var merge = require('./../PredictionContext').merge;
 

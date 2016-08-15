@@ -41,18 +41,20 @@
 import { Recognizer } from '../Recognizer';
 import { RuleContext } from '../RuleContext';
 import { Parser } from '../parser';
-import { StringHashed } from '../Utils';
+import * as Misc from '../misc';
 
 //import { Set } from './../Utils';
 
-export abstract class SemanticContext implements StringHashed {
+export abstract class SemanticContext extends Misc.CachedHashValue {
 	static NONE = new Predicate();
 
 	constructor() {
+		super();
 	}
 
-    abstract equals(other: StringHashed): boolean
-    abstract hashString(): string
+	// Subclasses must implement Value interface
+    abstract getHashCode(): number
+    abstract equals(other: SemanticContext): boolean
 
 	
 	// For context independent predicates, we evaluate them without a local
@@ -92,38 +94,6 @@ export abstract class SemanticContext implements StringHashed {
 	};
 	
 
-	static andContext(a: SemanticContext, b: SemanticContext) : SemanticContext {
-		if (a === null || a === SemanticContext.NONE) {
-			return b;
-		}
-		if (b === null || b === SemanticContext.NONE) {
-			return a;
-		}
-		var result = new AND(a, b);
-		if (result.opnds.length === 1) {
-			return result.opnds[0];
-		} else {
-			return result;
-		}
-	};
-
-	static orContext(a: SemanticContext, b: SemanticContext): SemanticContext {
-		if (a === null) {
-			return b;
-		}
-		if (b === null) {
-			return a;
-		}
-		if (a === SemanticContext.NONE || b === SemanticContext.NONE) {
-			return SemanticContext.NONE;
-		}
-		var result = new OR(a, b);
-		if (result.opnds.length === 1) {
-			return result.opnds[0];
-		} else {
-			return result;
-		}
-	}
 }
 
 export class Predicate extends SemanticContext {
@@ -139,9 +109,9 @@ export class Predicate extends SemanticContext {
 		return parser.sempred(localctx, this.ruleIndex, this.predIndex);
 	};
 
-	hashString() {
-		return "" + this.ruleIndex + "/" + this.predIndex + "/" + this.isCtxDependent;
-	};
+	getHashCode() {
+		return Misc.combineHash(0x3415177, this.ruleIndex, this.predIndex, this.isCtxDependent? 0x8009 : 0 )
+	}
 
 	equals(other) {
 		if (this === other) {
@@ -181,9 +151,9 @@ export class PrecedencePredicate extends SemanticContext {
 		return this.precedence - other.precedence;
 	};
 
-	hashString() {
-		return "31";
-	};
+	getHashCode() {
+		return this.precedence ? 0x74159f1 :0x2318745 
+	}
 
 	equals(other) {
 		if (this === other) {
@@ -210,29 +180,93 @@ export class PrecedencePredicate extends SemanticContext {
 	};
 }
 
+abstract class Operator extends SemanticContext {
+
+	protected _operands = new Misc.UnorderedValueSet<SemanticContext>();
+
+	constructor () { 
+		super(); 
+	}
+	
+	private getOperands() {
+		return this._operands
+	}
+
+	equals(other: Operator) {
+		if (this === other) {
+			return true;
+		} else if (Object.getPrototypeOf(this) != Object.getPrototypeOf(this)) {
+			return false;
+		} else {
+			return this._operands.equals(other._operands);
+		}
+	};
+
+	/**
+	 * combine two SemanticContexts with an AND
+	 */
+
+	static andContext(a: SemanticContext, b: SemanticContext) : SemanticContext {
+		if (a === null || a === SemanticContext.NONE) {
+			return b;
+		}
+		if (b === null || b === SemanticContext.NONE) {
+			return a;
+		}
+		var result = new AND(a, b);
+		if (result._operands.size === 1) {
+			return result._operands[0];
+		} else {
+			return result;
+		}
+	};
+
+	/**
+	 * combine two SemanticContexts with an OR
+	 */
+
+	static orContext(a: SemanticContext, b: SemanticContext): SemanticContext {
+		if (a === null) {
+			return b;
+		}
+		if (b === null) {
+			return a;
+		}
+		if (a === SemanticContext.NONE || b === SemanticContext.NONE) {
+			return SemanticContext.NONE;
+		}
+		var result = new OR(a, b);
+		if (result._operands.size === 1) {
+			return result._operands[0];
+		} else {
+			return result;
+		}
+	}
+}
+
 // A semantic context which is true whenever none of the contained contexts
 // is false.
 //
-class AND extends SemanticContext {
-	opnds: SemanticContext[] = [];
+class AND extends Operator  {
 
 	constructor(a, b) {
 		super();
-		var operands = new Set();
+		var operands = this._operands;
 		if (a instanceof AND) {
-			a.opnds.map(function (o) {
+			a._operands.map(function (o) {
 				operands.add(o);
 			});
 		} else {
 			operands.add(a);
 		}
 		if (b instanceof AND) {
-			b.opnds.map(function (o) {
+			b._operands.map(function (o) {
 				operands.add(o);
 			});
 		} else {
 			operands.add(b);
 		}
+
 		var precedencePredicates = PrecedencePredicate.filterPrecedencePredicates(operands);
 		if (precedencePredicates.length > 0) {
 			// interested in the transition with the lowest precedence
@@ -244,22 +278,14 @@ class AND extends SemanticContext {
 			});
 			operands.add(reduced);
 		}
-		this.opnds = Array.from(operands.values());
 	}
 
-	equals(other) {
-		if (this === other) {
-			return true;
-		} else if (!(other instanceof AND)) {
-			return false;
-		} else {
-			return this.opnds === other.opnds;
-		}
-	};
+	
+	getHashCode() { 
+		return Misc.combineHash( -2341751, this._operands.hashCode() )
+	}
 
-	hashString() {
-		return "" + this.opnds + "/AND";
-	};
+
 	//
 	// {@inheritDoc}
 	//
@@ -268,8 +294,8 @@ class AND extends SemanticContext {
 	// unordered.</p>
 	//
 	evaluate(parser: Parser, outerContext: RuleContext ) {
-		for (var i = 0; i < this.opnds.length; i++) {
-			if (!this.opnds[i].evaluate(parser, outerContext)) {
+		for (var i = 0; i < this._operands.size; i++) {
+			if (!this._operands[i].evaluate(parser, outerContext)) {
 				return false;
 			}
 		}
@@ -279,8 +305,8 @@ class AND extends SemanticContext {
 	evalPrecedence(parser: Parser, outerContext: RuleContext ) {
 		var differs = false;
 		var operands = [];
-		for (var i = 0; i < this.opnds.length; i++) {
-			var context = this.opnds[i];
+		for (var i = 0; i < this._operands.size; i++) {
+			var context = this._operands[i];
 			var evaluated = context.evalPrecedence(parser, outerContext);
 			differs = differs || (evaluated !== context);
 			if (evaluated === null) {
@@ -300,14 +326,14 @@ class AND extends SemanticContext {
 		}
 		var result = null;
 		operands.map(function (o) {
-			result = result === null ? o : SemanticContext.andContext(result, o);
+			result = result === null ? o : Operator.andContext(result, o);
 		});
 		return result;
 	};
 
 	toString() {
 		var s = "";
-		this.opnds.map(function (o) {
+		this._operands.map(function (o) {
 			s += "&& " + o.toString();
 		});
 		return s.length > 3 ? s.slice(3) : s;
@@ -317,21 +343,21 @@ class AND extends SemanticContext {
 // A semantic context which is true whenever at least one of the contained
 // contexts is true.
 //
-class OR extends SemanticContext {
-	opnds: Array<SemanticContext> = [];
+class OR extends Operator {
 
 	constructor(a: SemanticContext, b: SemanticContext) {
 		super();
-		var operands = new Set<SemanticContext>();
+
+		var operands = this._operands;
 		if (a instanceof OR) {
-			a.opnds.map(function (o) {
+			a._operands.map(function (o) {
 				operands.add(o);
 			});
 		} else {
 			operands.add(a);
 		}
 		if (b instanceof OR) {
-			b.opnds.map(function (o) {
+			b._operands.map(function (o) {
 				operands.add(o);
 			});
 		} else {
@@ -347,9 +373,14 @@ class OR extends SemanticContext {
 			var reduced = s[s.length - 1];
 			operands.add(reduced);
 		}
-		this.opnds = Array.from( operands.values() );
 		return this;
 	}
+
+
+	getHashCode() { 
+		return Misc.combineHash( 1723511, this._operands.hashCode() )
+	}
+
 
 /* Something extremely bizzare about this in the JavaScript runtime
 	constructor(other) {
@@ -358,22 +389,18 @@ class OR extends SemanticContext {
 		} else if (!(other instanceof OR)) {
 			return false;
 		} else {
-			return this.opnds === other.opnds;
+			return this._operands === other._operands;
 		}
 	};
 */
-
-	hashString() {
-		return "" + this.opnds + "/OR";
-	};
 
 	// <p>
 	// The evaluation of predicates by this context is short-circuiting, but
 	// unordered.</p>
 	//
 	evaluate(parser: Parser, outerContext: RuleContext ) {
-		for (var i = 0; i < this.opnds.length; i++) {
-			if (this.opnds[i].evaluate(parser, outerContext)) {
+		for (var i = 0; i < this._operands.size; i++) {
+			if (this._operands[i].evaluate(parser, outerContext)) {
 				return true;
 			}
 		}
@@ -383,8 +410,8 @@ class OR extends SemanticContext {
 	evalPrecedence(parser: Parser, outerContext: RuleContext ) {
 		var differs = false;
 		var operands = [];
-		for (var i = 0; i < this.opnds.length; i++) {
-			var context = this.opnds[i];
+		for (var i = 0; i < this._operands.size; i++) {
+			var context = this._operands[i];
 			var evaluated = context.evalPrecedence(parser, outerContext);
 			differs = differs || (evaluated !== context);
 			if (evaluated === SemanticContext.NONE) {
@@ -404,14 +431,14 @@ class OR extends SemanticContext {
 		}
 		var result = null;
 		operands.map(function (o) {
-			return result === null ? o : SemanticContext.orContext(result, o);
+			return result === null ? o : Operator.orContext(result, o);
 		});
 		return result;
 	};
 
 	toString() {
 		var s = "";
-		this.opnds.map(function (o) {
+		this._operands.map(function (o) {
 			s += "|| " + o.toString();
 		});
 		return s.length > 3 ? s.slice(3) : s;

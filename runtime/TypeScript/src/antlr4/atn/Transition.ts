@@ -44,15 +44,18 @@
 import { Token } from'../Token';
 import { Interval, IntervalSet } from'../IntervalSet';
 import { Predicate, PrecedencePredicate } from'./SemanticContext';
+import { ATNState } from './ATNState'
 
 export class Transition {
     isEpsilon = false;
-    constructor(public target) {
+
+    constructor(public target: ATNState) {
         // The target of this transition.
         if (target === undefined || target === null) {
             throw "target cannot be null.";
         }
     }
+    
     // constants for serialization
     static EPSILON = 1;
     static RANGE = 2;
@@ -117,7 +120,9 @@ export class AtomTransition extends Transition {
 }
 
 export class RuleTransition extends Transition {
+    
     serializationType = Transition.RULE;
+
     constructor(public ruleStart, public ruleIndex, public precedence, public followState) {
         super(ruleStart);
         this.isEpsilon = true;
@@ -132,7 +137,7 @@ export class RuleTransition extends Transition {
 export class EpsilonTransition extends Transition {
     serializationType = Transition.EPSILON;
 
-    constructor(target, public outermostPrecedenceReturn) {
+    constructor(target: ATNState, public outermostPrecedenceReturn?) {
         super(target);
         this.isEpsilon = true;
     }
@@ -149,7 +154,7 @@ export class EpsilonTransition extends Transition {
 export class RangeTransition extends Transition {
     serializationType = Transition.RANGE;
     label: IntervalSet;
-    constructor(target, public start, public stop) {
+    constructor(target: ATNState, public start, public stop) {
         super(target);
         this.start = start;
         this.stop = stop;

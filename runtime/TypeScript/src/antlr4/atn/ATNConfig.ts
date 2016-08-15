@@ -40,17 +40,17 @@
 import { ATNState, DecisionState } from './ATNState';
 import { SemanticContext } from './SemanticContext';
 import { PredictionContext } from '../PredictionContext';
-import { StringHashed } from '../Utils';
+import * as Misc from '../misc';
 import { LexerActionExecutor } from './LexerActionExecutor';
 
 interface IParams {
-    state?: ATNState ;
-    alt?: number ;
-    context?: PredictionContext ;
-    semanticContext?: SemanticContext ;
-    reachesIntoOuterContext?: number ;
-    precedenceFilterSuppressed? : boolean;
-    lexerActionExecutor? : LexerActionExecutor;
+    state?: ATNState;
+    alt?: number;
+    context?: PredictionContext;
+    semanticContext?: SemanticContext;
+    reachesIntoOuterContext?: number;
+    precedenceFilterSuppressed?: boolean;
+    lexerActionExecutor?: LexerActionExecutor;
 }
 class Params implements IParams {
     state: ATNState = null;
@@ -59,10 +59,10 @@ class Params implements IParams {
     semanticContext: SemanticContext = null;
     reachesIntoOuterContext: number = null;
     precedenceFilterSuppressed = false
-    lexerActionExecutor= null;
+    lexerActionExecutor = null;
 }
 
-function checkParams(params: IParams, isCfg: boolean=false ): Params {
+function checkParams(params: IParams, isCfg: boolean = false): Params {
     if (params === null) {
         var result = new Params();
         if (isCfg) {
@@ -83,9 +83,16 @@ function checkParams(params: IParams, isCfg: boolean=false ): Params {
     }
 }
 
-export class ATNConfig extends Params implements StringHashed {
+export class ATNConfig implements IParams, Misc.Value {
+
+    alt: number
+    context: PredictionContext
+    reachesIntoOuterContext: number
+    semanticContext: SemanticContext
+    state: ATNState
+    precedenceFilterSuppressed: boolean
+
     constructor(params: IParams, config: IParams) {
-        super();
         this.checkContext(params, config);
         params = checkParams(params);
         config = checkParams(config, true);
@@ -137,15 +144,21 @@ export class ATNConfig extends Params implements StringHashed {
         }
     };
 
-    shortHashString() {
-        return "" + this.state.stateNumber + "/" + this.alt + "/" + this.semanticContext;
-    };
+    hashCode() {
+        return Misc.combineHash(this.state.stateNumber, this.alt, this.semanticContext.hashCode());
+    }
 
-    hashString() {
-        return "" + this.state.stateNumber + "/" + this.alt + "/" +
-            (this.context === null ? "" : this.context.hashString()) +
-            "/" + this.semanticContext.hashString();
-    };
+    /* xxx
+        shortHashString() {
+            return "" + this.state.stateNumber + "/" + this.alt + "/" + this.semanticContext;
+        };
+    
+        hashString() {
+            return "" + this.state.stateNumber + "/" + this.alt + "/" +
+                (this.context === null ? "" : this.context.hashString()) +
+                "/" + this.semanticContext.hashString();
+        };
+    */
 
     toString() {
         return "(" + this.state + "," + this.alt +
@@ -160,41 +173,44 @@ export class ATNConfig extends Params implements StringHashed {
 }
 
 export class LexerATNConfig extends ATNConfig {
-    constructor(params : Params, config: ATNConfig) {
-    
-    super( params, config);
+    lexerActionExecutor: LexerActionExecutor;
+    passedThroughNonGreedyDecision: boolean;
 
-    // This is the backing field for {@link //getLexerActionExecutor}.
-    var lexerActionExecutor = params.lexerActionExecutor || null;
-    this.lexerActionExecutor = lexerActionExecutor || (config !== null ? config.lexerActionExecutor : null);
-    this.passedThroughNonGreedyDecision = config !== null ? this.checkNonGreedyDecision(config, this.state) : false;
+    constructor(params: Params, config: LexerATNConfig) {
 
-}
+        super(params, config);
 
-hashString() {
-    return "" + this.state.stateNumber + this.alt + this.context +
-        this.semanticContext + (this.passedThroughNonGreedyDecision ? 1 : 0) +
-        this.lexerActionExecutor;
-};
+        // This is the backing field for {@link //getLexerActionExecutor}.
+        var lexerActionExecutor = params.lexerActionExecutor || null;
+        this.lexerActionExecutor = lexerActionExecutor || (config !== null ? config.lexerActionExecutor : null);
+        this.passedThroughNonGreedyDecision = config !== null ? this.checkNonGreedyDecision(config, this.state) : false;
 
-equals(other) {
-    if (this === other) {
-        return true;
-    } else if (!(other instanceof LexerATNConfig)) {
-        return false;
-    } else if (this.passedThroughNonGreedyDecision !== other.passedThroughNonGreedyDecision) {
-        return false;
-    } else if (this.lexerActionExecutor ?
-        !this.lexerActionExecutor.equals(other.lexerActionExecutor)
-        : !other.lexerActionExecutor) {
-        return false;
-    } else {
-        return ATNConfig.prototype.equals.call(this, other);
     }
-};
 
-checkNonGreedyDecision(source, target) {
-    return source.passedThroughNonGreedyDecision ||
-        (target instanceof DecisionState) && target.nonGreedy;
-};
+    hashString() {
+        return "" + this.state.stateNumber + this.alt + this.context +
+            this.semanticContext + (this.passedThroughNonGreedyDecision ? 1 : 0) +
+            this.lexerActionExecutor;
+    };
+
+    equals(other) {
+        if (this === other) {
+            return true;
+        } else if (!(other instanceof LexerATNConfig)) {
+            return false;
+        } else if (this.passedThroughNonGreedyDecision !== other.passedThroughNonGreedyDecision) {
+            return false;
+        } else if (this.lexerActionExecutor ?
+            !this.lexerActionExecutor.equals(other.lexerActionExecutor)
+            : !other.lexerActionExecutor) {
+            return false;
+        } else {
+            return ATNConfig.prototype.equals.call(this, other);
+        }
+    };
+
+    checkNonGreedyDecision(source, target) {
+        return source.passedThroughNonGreedyDecision ||
+            (target instanceof DecisionState) && target.nonGreedy;
+    };
 }

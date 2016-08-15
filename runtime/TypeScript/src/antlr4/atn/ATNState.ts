@@ -28,6 +28,9 @@
 //  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 //  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
+import {ATN} from './ATN'
+import {StringHashed} from '../Utils'
+import {Transition} from './Transition'
 
 // The following images show the relation of states and
 // {@link ATNState//transitions} for various grammar constructs.
@@ -89,9 +92,10 @@
 // <embed src="images/OptionalNonGreedy.svg" type="image/svg+xml"/>
 //
 
-var INITIAL_NUM_TRANSITIONS = 4;
+const INITIAL_NUM_TRANSITIONS = 4;
+
 // constants for serialization
-enum StateType {
+export enum ATNStateType {
     INVALID_TYPE = 0,
     BASIC = 1,
     RULE_START = 2,
@@ -107,27 +111,28 @@ enum StateType {
     LOOP_END = 12,
 }
 
-
-export class ATNState {
-    // Which ATN are we in?
-    atn = null;
-    stateNumber = ATNState.INVALID_STATE_NUMBER;
-    stateType = StateType.INVALID_TYPE;
-    ruleIndex = 0; // at runtime, we don't have Rule objects
-    epsilonOnlyTransitions = false;
-    // Track the transitions emanating from this ATN state.
-    transitions = [];
-    // Used to cache lookahead during parsing, not used during construction
-    nextTokenWithinRule = null;
-    constructor() {
-    }
+export abstract class ATNState implements StringHashed {
 
     static INVALID_STATE_NUMBER = -1;
 
-    toString() {
-        return this.stateNumber;
-    };
-
+    // Which ATN are we in?
+    atn: ATN = null;
+    stateNumber = ATNState.INVALID_STATE_NUMBER;
+    ruleIndex = 0; // at runtime, we don't have Rule objects
+    epsilonOnlyTransitions = false;
+    
+    // Track the transitions emanating from this ATN state.
+    transitions: Transition[] = [];
+    
+    // Used to cache lookahead during parsing, not used during construction
+    nextTokenWithinRule = null;
+    
+    constructor(public stateType : ATNStateType ) {
+    }
+    
+    // StringHashable interface
+    hashString() { return this.stateNumber.toString() };
+    
     equals(other) {
         if (other instanceof ATNState) {
             return this.stateNumber === other.stateNumber;
@@ -136,12 +141,15 @@ export class ATNState {
         }
     };
 
+    toString() {
+        return this.stateNumber;
+    };
+
     isNonGreedyExitState() {
         return false;
     };
 
-
-    addTransition(trans, index) {
+    addTransition(trans:Transition, index?: number) {
         if (index === undefined) {
             index = -1;
         }
@@ -160,41 +168,36 @@ export class ATNState {
 
 export class BasicState extends ATNState {
     constructor() {
-        super();
-        this.stateType = StateType.BASIC;
+        super(ATNStateType.BASIC);
     }
 };
 
-export class DecisionState extends ATNState {
+export abstract class DecisionState extends ATNState {
     decision = -1;
     nonGreedy = false;
-    constructor() {
-        super();
+    constructor(stateType: ATNStateType) {
+        super(stateType);
     }
 }
 
 //  The start of a regular {@code (...)} block.
-export class BlockStartState extends DecisionState {
-    endState = null;
-    constructor() {
-        super();
-
+export abstract class BlockStartState extends DecisionState {
+    constructor( public stateType: ATNStateType, public endState : BlockEndState = null ) {
+        super(stateType);
     }
 }
 
 export class BasicBlockStartState extends BlockStartState {
     constructor() {
-        super();
-        this.stateType = StateType.BLOCK_START;
+        super(ATNStateType.BLOCK_START);
     }
 }
 
 // Terminal node of a simple {@code (a|b|c)} block.
 export class BlockEndState extends ATNState {
-    startState = null;
+    startState: ATNState = null;
     constructor() {
-        super();
-        this.stateType = StateType.BLOCK_END;
+        super(ATNStateType.BLOCK_END);
     }
 }
 
@@ -205,18 +208,17 @@ export class BlockEndState extends ATNState {
 //
 export class RuleStopState extends ATNState {
     constructor() {
-        super();
-        this.stateType = StateType.RULE_STOP;
+        super(ATNStateType.RULE_STOP);
     }
 }
 
 export class RuleStartState extends ATNState {
-    stopState = null;
+
+    stopState: ATNState = null;
     isPrecedenceRule = false;
 
     constructor() {
-        super();
-        this.stateType = StateType.RULE_START;
+        super(ATNStateType.RULE_START);
     }
 }
 
@@ -225,8 +227,7 @@ export class RuleStartState extends ATNState {
 //
 export class PlusLoopbackState extends DecisionState {
     constructor() {
-        super();
-        this.stateType = StateType.PLUS_LOOP_BACK;
+        super(ATNStateType.PLUS_LOOP_BACK);
     }
 }
 
@@ -236,25 +237,22 @@ export class PlusLoopbackState extends DecisionState {
 //  real decision-making note for {@code A+}.
 //
 export class PlusBlockStartState extends BlockStartState {
-    loopBackState = null;
+    loopBackState: ATNState = null;
     constructor() {
-        super();
-        this.stateType = StateType.PLUS_BLOCK_START;
+        super(ATNStateType.PLUS_BLOCK_START);
     }
 }
 
 // The block that begins a closure loop.
 export class StarBlockStartState extends BlockStartState {
     constructor() {
-        super();
-        this.stateType = StateType.STAR_BLOCK_START;
+        super(ATNStateType.STAR_BLOCK_START);
     }
 }
 
 export class StarLoopbackState extends ATNState {
     constructor() {
-        super();
-        this.stateType = StateType.STAR_LOOP_BACK;
+        super(ATNStateType.STAR_LOOP_BACK);
     }
 }
 
@@ -263,25 +261,21 @@ export class StarLoopEntryState extends DecisionState {
     // Indicates whether this state can benefit from a precedence DFA during SLL decision making.
     precedenceRuleDecision = null;
     constructor() {
-        super();
-        this.stateType = StateType.STAR_LOOP_ENTRY;
+        super(ATNStateType.STAR_LOOP_ENTRY);
     }
 }
 
 // Mark the end of a * or + loop.
 export class LoopEndState extends ATNState {
-    loopBackState = null;
+    loopBackState: ATNState = null;
     constructor() {
-        super();
-        this.stateType = StateType.LOOP_END;
+        super(ATNStateType.LOOP_END);
     }
 }
-
 
 // The Tokens rule start state linking to each lexer rule start state */
 export class TokensStartState extends DecisionState {
     constructor() {
-        super();
-        this.stateType = StateType.TOKEN_START;
+        super(ATNStateType.TOKEN_START);
     }
 }

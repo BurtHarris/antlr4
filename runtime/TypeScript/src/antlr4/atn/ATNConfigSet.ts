@@ -37,13 +37,10 @@
 import { ATN } from './ATN';
 import { ATNState } from './ATNState';
 import { ATNConfig } from './ATNConfig';
-import * as Utils from './../Utils';
+import * as Misc from './../Misc';
 import { SemanticContext } from './SemanticContext';
 import { merge } from './../PredictionContext';
 
-function hashATNConfig(c) {
-	return c.shortHashString();
-}
 
 function equalATNConfigs(a, b) {
 	if (a === b) {
@@ -56,18 +53,33 @@ function equalATNConfigs(a, b) {
 		a.alt === b.alt && a.semanticContext.equals(b.semanticContext);
 }
 
+/**
+ * Speclized Set<ATNConfig> that can track info about the set, with support for combining similar configurations using a graph-structured stack.
+ */
+export class ATNConfigSet extends Misc.BaseOrderedHashSet<ATNConfig> {
+	/**
+	 * The reason that we need this is because we don't want the hash map to use
+	 * the standard hash code and equals. We need all configurations with the same
+	 * {@code (s,i,_,semctx)} to be equal. Unfortunately, this key effectively doubles
+	 * the number of objects associated with ATNConfigs. The other solution is to
+	 * use a hash table that lets us specify the equals/hashcode operation.
+	 */
 
-export class ATNConfigSet {
+	valueHash(c: ATNConfig) {
+		return Misc.combineHash( c.state.stateNumber, c.alt, c.semanticContext.hashCode(), 0x2111111 )
+	}
+
+	
+    valueEquals(a: ATNConfig, b: ATNConfig) {
+	if (a === b) return true;
+	if (a === null || b === null) return false;
+	return a.state.stateNumber === b.state.stateNumber
+		&& a.alt === b.alt 
+		&& a.semanticContext.equals(b.semanticContext);
+	}
+
 	configLookup = new Utils.StringHashedSet<ATNConfig>();
-	//
-	// The reason that we need this is because we don't want the hash map to use
-	// the standard hash code and equals. We need all configurations with the
-	// same
-	// {@code (s,i,_,semctx)} to be equal. Unfortunately, this key effectively
-	// doubles
-	// the number of objects associated with ATNConfigs. The other solution is
-	// to
-	// use a hash table that lets us specify the equals/hashcode operation.
+
 	// All configs but hashed by (s, i, _, pi) not including context. Wiped out
 	// when we go readonly as this set becomes a DFA state.
 	// Indicates that this configuration set is part of a full context
@@ -78,7 +90,15 @@ export class ATNConfigSet {
 	// the sets and they must not change. This does not protect the other
 	// fields; in particular, conflictingAlts is set after
 	// we've made this readonly.
+
+	/** Indicates that the set of configurations is read-only. Do not
+	 *  allow any code to manipulate the set; DFA states will point at
+	 *  the sets and they must not change. This does not protect the other
+	 *  fields; in particular, conflictingAlts is set after
+	 *  we've made this readonly.
+ 	 */
 	readOnly = false;
+	
 	// Track the elements as they are added to the set; supports get(i)///
 	configs: ATNConfig[] = [];
 
@@ -86,8 +106,8 @@ export class ATNConfigSet {
 	// together, saves recomputation
 	// TODO: can we track conflicts as they are added to save scanning configs
 	// later?
-	uniqueAlt = 0;
-	conflictingAlts = null;
+	uniqueAlt: number = 0;
+	conflictingAlts: Bitset = null;
 
 	// Used in parser and lexer. In lexer, it indicates we hit a pred
 	// while computing a closure operation. Don't make a DFA state from this.
@@ -218,53 +238,54 @@ export class ATNConfigSet {
 		return s;
 	};
 
-	Object.defineProperty(ATNConfigSet.prototype, "length", {
-	get: function () {
+
+	get length() {
 		return this.configs.length;
 	}
-});
 
-isEmpty() {
-	return this.configs.length === 0;
-};
 
-contains(item) {
-	if (this.configLookup === null) {
-		throw "This method is not implemented for readonly sets.";
-	}
-	return this.configLookup.contains(item);
-};
+	isEmpty() {
+		return this.configs.length === 0;
+	};
 
-containsFast(item) {
-	if (this.configLookup === null) {
-		throw "This method is not implemented for readonly sets.";
-	}
-	return this.configLookup.containsFast(item);
-};
+	contains(item) {
+		if (this.configLookup === null) {
+			throw "This method is not implemented for readonly sets.";
+		}
+		return this.configLookup.contains(item);
+	};
 
-clear() {
-	if (this.readOnly) {
-		throw "This set is readonly";
-	}
-	this.configs = [];
-	this.cachedHashString = "-1";
-	this.configLookup = new Set();
-};
+	containsFast(item) {
+		if (this.configLookup === null) {
+			throw "This method is not implemented for readonly sets.";
+		}
+		return this.configLookup.containsFast(item);
+	};
 
-setReadonly(readOnly) {
-	this.readOnly = readOnly;
-	if (readOnly) {
-		this.configLookup = null; // can't mod, no need for lookup cache
-	}
-};
+	clear() {
+		if (this.readOnly) {
+			throw "This set is readonly";
+		}
+		this.configs = [];
+		this.cachedHashString = "-1";
+		this.configLookup = new Set();
+	};
 
-toString() {
-	return Utils.arrayToString(this.configs) +
-		(this.hasSemanticContext ? ",hasSemanticContext=" + this.hasSemanticContext : "") +
-		(this.uniqueAlt !== ATN.INVALID_ALT_NUMBER ? ",uniqueAlt=" + this.uniqueAlt : "") +
-		(this.conflictingAlts !== null ? ",conflictingAlts=" + this.conflictingAlts : "") +
-		(this.dipsIntoOuterContext ? ",dipsIntoOuterContext" : "");
-};
+	setReadonly(readOnly) {
+		this.readOnly = readOnly;
+		if (readOnly) {
+			this.configLookup = null; // can't mod, no need for lookup cache
+		}
+	};
+
+	toString() {
+		return Utils.arrayToString(this.configs) +
+			(this.hasSemanticContext ? ",hasSemanticContext=" + this.hasSemanticContext : "") +
+			(this.uniqueAlt !== ATN.INVALID_ALT_NUMBER ? ",uniqueAlt=" + this.uniqueAlt : "") +
+			(this.conflictingAlts !== null ? ",conflictingAlts=" + this.conflictingAlts : "") +
+			(this.dipsIntoOuterContext ? ",dipsIntoOuterContext" : "");
+	};
+}
 
 class OrderedATNConfigSet {
 	configLookup = new Utils.StringHashedSet();

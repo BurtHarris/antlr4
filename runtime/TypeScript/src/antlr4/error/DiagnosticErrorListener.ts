@@ -49,7 +49,7 @@
 // this situation occurs.</li>
 // </ul>
 
-//import {  BitSet } from '../Utils';
+import {  BitSet } from '../BitSet';
 import { ErrorListener, BaseErrorListener } from './ErrorListener';
 import { Interval } from '../IntervalSet';
 

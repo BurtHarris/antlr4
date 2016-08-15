@@ -260,8 +260,8 @@
 
 import * as Utils from '../Utils';
 // const Set = Utils.Set;
-// const BitSet = Utils.BitSet;
 // var DoubleDict = Utils.DoubleDict;
+import { BitSet } from '../BitSet'
 import {ATN} from'./ATN';
 import { ATNConfig } from './ATNConfig';
 import { ATNConfigSet } from './ATNConfigSet';
