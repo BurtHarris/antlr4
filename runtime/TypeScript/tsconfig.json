@@ -10,6 +10,7 @@
     },
     "files": [
         "typings/index.d.ts",
+        "src/antlr4/index.ts",
         "src/antlr4/tests/index.ts"
     ]
 
