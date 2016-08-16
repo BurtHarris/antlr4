@@ -30,6 +30,7 @@
  *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 /**
  * An alternate version of the Set interface, differing from the JavaScript standard Set in small ways (motivated by 
  * byValue semantics, rather than identity semantics):
@@ -38,7 +39,7 @@
  *   - get(value: T) T (new method to retrieve and return any value that "equals" the one passed in)
  *   - keys() is omitted.   It too is redundant with values(). 
  */
-interface ValueSet<T> {
+export interface ValueSet<T> extends Iterable<T> {
     add(value: T): T;
     clear(): void;
     delete(value: T): boolean;
@@ -56,6 +57,11 @@ interface ValueSetConstructor {
     new <T>(): ValueSet<T>;
     new <T>(iterable: Iterable<T>): ValueSet<T>;
     prototype: ValueSet<any>;
+}
+
+export interface ValueComparitor<T> {
+	hashCode(value: T): number;
+	equals(a: T, b: T): boolean;
 }
 
 export interface Value {
@@ -77,7 +83,6 @@ export interface Value {
  * For objects where equality is a complicated business, Comparator class class
  * can be used to create sets without depending Equals interface
  */
-
 
 export abstract class CachedHashValue implements Value {
 	private _hashCode: number;
@@ -266,12 +271,40 @@ export class UnorderedValueSet<T extends Value> extends BaseUnorderedHashSet<T> 
 
 UnorderedValueSet[Symbol.toStringTag] = "UnorderedValueSet";
 
-export function combineHash(...numbers: number[]) {
-	let code: number = +numbers[0];
-	for (let i=1; i<numbers.length; i++)
-		code ^= (+numbers[i] + 0x1e377b9b + (code << 6) + (code >> 2)) & 0x3FFFFFF;
-	return code;
+/**
+ * I'm not sure if this accurately implements any MurmerHash algorithm, but it's reasonablly close and flexible.
+ */
+
+export function MurmurHash( values: Iterable<number>) : number {
+		
+		// Code with & 0x7FFFFFFF is a non-standard optimization to keep values in the range that typical 
+		// modern JavaScript implementations can implement without memory allocation.   It will almost certainly
+		// alter the values generated...
+
+		let hash = 0;
+		let valueCount = 0;
+
+		for (let k of values) {
+			valueCount++;
+
+			k = (k * 0xCC9E2D51) & 0x7FFFFFFF;
+			k = (k << 15) | (k >>> 17);
+			k = (k * 0x1B873593) & 0x7FFFFFFF; // non-standard tweak
+
+			hash = hash ^ k;
+			hash = (hash << 13) | (hash >>> 19);
+			hash = (hash * 5 + 0xE6546B64) & 0x7FFFFFFF;
+		}
+
+		hash = hash ^ (valueCount * 4) & 0x7FFFFFFF;
+		hash = hash ^ (hash >>> 16);
+		hash = (hash * 0x85EBCA6B) & 0x7FFFFFFF;
+		hash = hash ^ (hash >>> 13);
+		hash = (hash * 0xC2B2AE35) & 0x7FFFFFFF;
+		hash = hash ^ (hash >>> 16);
+
+		return hash;
 }
 
-export {DoubleKeyMap} from './DoubleKeyMap';
-export {MurmerHash} from './MurmerHash';
+export { DoubleKeyMap } from './DoubleKeyMap';
+export { Array2DHashSet } from './Array2DHashSet';

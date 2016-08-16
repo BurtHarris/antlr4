@@ -28,16 +28,13 @@
 //  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // A DFA walker that knows how to dump them to serialized strings.#/
+import { DFA }from './DFA'
 
-
-function DFASerializer(dfa, literalNames, symbolicNames) {
-	this.dfa = dfa;
-	this.literalNames = literalNames || [];
-	this.symbolicNames = symbolicNames || [];
-	return this;
+export class DFASerializer {
+    constructor(public dfa: DFA, literalNames: string[] = [], symbolicNames: string[] = []) {
 }
 
-DFASerializer.prototype.toString = function() {
+toString() {
    if(this.dfa.s0 === null) {
        return null;
    }
@@ -63,7 +60,7 @@ DFASerializer.prototype.toString = function() {
    return buf.length===0 ? null : buf;
 };
 
-DFASerializer.prototype.getEdgeLabel = function(i) {
+getEdgeLabel(i) {
     if (i===0) {
         return "EOF";
     } else if(this.literalNames !==null || this.symbolicNames!==null) {
@@ -73,7 +70,7 @@ DFASerializer.prototype.getEdgeLabel = function(i) {
     }
 };
 
-DFASerializer.prototype.getStateString = function(s) {
+getStateString(s) {
     var baseStateStr = ( s.isAcceptState ? ":" : "") + "s" + s.stateNumber + ( s.requiresFullContext ? "^" : "");
     if(s.isAcceptState) {
         if (s.predicates !== null) {
@@ -94,7 +91,7 @@ function LexerDFASerializer(dfa) {
 LexerDFASerializer.prototype = Object.create(DFASerializer.prototype);
 LexerDFASerializer.prototype.constructor = LexerDFASerializer;
 
-LexerDFASerializer.prototype.getEdgeLabel = function(i) {
+getEdgeLabel(i) {
 	return "'" + String.fromCharCode(i) + "'";
 };
 

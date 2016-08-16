@@ -30,6 +30,7 @@
 ///
 
 import { ATNConfigSet } from '../atn/ATNConfigSet';
+import { DecisionState } from '../atn/ATNState'
 import {LexerActionExecutor} from '../atn/LexerActionExecutor'
 import {SemanticContext} from '../atn/SemanticContext'
 import * as Misc from '../misc'
@@ -129,8 +130,8 @@ export class DFAState implements Misc.Value {
 		}
 	};
 
-	public int hashCode() {
-		int hash = MurmurHash.initialize(7);
+	hashCode() {
+		let hash = Misc.MurmurHash.initialize(7);
 		hash = MurmurHash.update(hash, configs.hashCode());
 		hash = MurmurHash.finish(hash, 1);
 		return hash;

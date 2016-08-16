@@ -36,6 +36,25 @@ import { ATN } from './ATN/ATN';
 import { ATNSimulator } from './ATN/ATNSimulator'
 import { RecognitionException, ErrorListener, ConsoleErrorListener, ProxyErrorListener} from './error';
 
+export class Vocabulary {
+    constructor(private _literalNames: string[], private _symbolicNames: string[], private _displayNames?: string[]){
+    }
+
+    getDisplayName(tokenType: number) {
+
+        let strings = this._displayNames;
+        if (strings && tokenType < strings.length && strings[tokenType]) return strings[tokenType];
+        
+        strings = this._literalNames;
+        if (strings && tokenType < strings.length && strings[tokenType]) return strings[tokenType];
+        
+        strings = this._literalNames;
+        if (strings && tokenType < strings.length && strings[tokenType]) return strings[tokenType];
+        
+        return tokenType.toString();
+    }
+}
+
 export abstract class Recognizer<Symbol, ATNInterpreter extends ATNSimulator> {
     // 
     // CONSIDER: Typescript enum might be a better choice.
@@ -43,11 +62,7 @@ export abstract class Recognizer<Symbol, ATNInterpreter extends ATNSimulator> {
     protected tokenTypeMapCache: Map<string, number>;
     protected ruleIndexMapCache: Map<string, number>;
     
-    //  Concerete subclasses must populate these 
-    abstract getTokenNames() : string[];
-    abstract getRuleNames() : string[];
-    abstract getLiteralNames(): string[];
-    abstract getSymbolicNames(): string[];
+    public vocabulary: Vocabulary;
 
     private _listeners: Array<ErrorListener> = [ConsoleErrorListener.INSTANCE];
     protected _interp : ATNInterpreter = null;

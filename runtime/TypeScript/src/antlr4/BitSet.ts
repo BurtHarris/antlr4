@@ -24,20 +24,18 @@
 /**
  *
  * @class BitSet
- * @classdesc This class implements an vector of bits that grows as needed.
- * Each component of the bit set has a boolean value. The bits of a BitSet are indexed by non-negative integers.
- * Individual indexed bits can be examined, set, or cleared. By default, all bits in the set initially
- * have the value false.
- * [Reference: BitSet in Java Collections](http://docs.oracle.com/javase/7/docs/api/java/util/BitSet.html)
+ * @classdesc This class implements an vector of boolean values that grows as needed.  The functionality of
+ * this class is inspired by [Reference: BitSet in Java Collections]  
+ * 
+ * It is implemented for modern ECMAScript 2015 runtimes, utilizing the native Uint16Array type for efficency.
+ * 
  * @param size {Number=} Initial size of the BitSet
  */
-
-// This version uses Uint16Array to ensure that temporary values stay in the allocation-free range for JavaScript
 
 const ARRAY_TYPE = Uint16Array;
 const ADDRESS_BITS_PER_WORD = 3 * ARRAY_TYPE.BYTES_PER_ELEMENT;
 const BITMASK = 0x0F;
-
+ 
 export class BitSet {
 
     private _words: Uint16Array;
@@ -74,18 +72,19 @@ export class BitSet {
             }
             this._wordsUsed = wordIndex + 1;
         }
-        return [wordIndex, bitIndex & BITMASK];
+        return [wordIndex, 1<<(bitIndex & 0x0F)];
     }
 
 
     /**
      * Set the bit at bitIndex to 'true'.
      * If required, BitSet is expanded to accommodate the bitIndex
-     * @param bitIndex {Number} index to set
+     * @param bitIndex {number} index to set
      */
-    set(bitIndex): void {
-        const [wordIndex, actualIndex] = this._index(bitIndex, true);
-        this._words[wordIndex] |= 1 << actualIndex;
+    public set(bitIndex: number, value: boolean = true ): void {
+        const [wordIndex, bitmask] = this._index(bitIndex, true);
+        if (value) this._words[wordIndex] |= bitmask;
+        else this._words[wordIndex] &= ~bitmask;
     };
 
     /**
@@ -95,7 +94,7 @@ export class BitSet {
      * @param bitIndex
      * @returns {Boolean}  Returns true if the bit at bitIndex is set, false otherwise.
      */
-    get(bitIndex) {
+    public get(bitIndex):boolean {
         const [wordIndex, actualIndex] = this._index(bitIndex);
         return (wordIndex < this._wordsUsed) && (
             ((this._words[wordIndex]) & (1 << actualIndex)) !== 0
@@ -108,14 +107,14 @@ export class BitSet {
      * @param bitIndex  {Number=} Set the bit at bitIndex to false.
      * Clears all bits if bitIndex is not provided
      */
-    clear(bitIndex?: number) {
+    public clear(bitIndex?: number) {
         var words = this._wordsUsed;
         if (typeof bitIndex === 'undefined') {
             this._words.fill(0, 0, words);
         } else {
-            const [wordIndex, actualIndex] = this._index(bitIndex, true);
+            const [wordIndex, bitmask] = this._index(bitIndex, true);
             if (wordIndex < this._wordsUsed) {
-                this._words[wordIndex] &= ~(1 << actualIndex);
+                this._words[wordIndex] &= ~bitmask;
             }
         }
     };
@@ -138,7 +137,7 @@ export class BitSet {
      * Adopted from Courtesy Hacker's Delight 5.1
      * @memberOf BitSet.prototype
      * @instance
-     * @returns {Number} number of bits set to true in this BitSet
+     * @returns {number} number of bits set to true in this BitSet
      */
     cardinality() {
         return this._words.reduce(function (sum, w) {
@@ -170,3 +169,5 @@ export class BitSet {
         }
     }
 }
+
+export default BitSet;

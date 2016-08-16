@@ -52,6 +52,7 @@ interface IParams {
     precedenceFilterSuppressed?: boolean;
     lexerActionExecutor?: LexerActionExecutor;
 }
+
 class Params implements IParams {
     state: ATNState = null;
     alt: number = null;

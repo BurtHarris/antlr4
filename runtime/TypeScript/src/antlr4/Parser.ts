@@ -37,31 +37,14 @@ import { Lexer } from './Lexer';
 import { ATNDeserializer } from './atn/ATNDeserializer';
 import { ATNDeserializationOptions } from  './atn/ATNDeserializationOptions';
 
-export class TraceListener extends ParseTreeListener {
-	constructor(public parser: Parser) {
-		super();
-	}
-
-	enterEveryRule(ctx: ParserRuleContext) {
-		console.log("enter   " + this.parser.ruleNames[ctx.ruleIndex] + ", LT(1)=" + this.parser._input.LT(1).text);
-	};
-
-	visitTerminal(node:TerminalNode) {
-		console.log("consume " + node.symbol + " rule " + this.parser.ruleNames[this.parser._ctx.ruleIndex]);
-	};
-
-	vistErrorNode(node: ErrorNode) {
-		console.log(`error ${node.symbol} rule ${this.parser.ruleNames[this.parser._ctx.ruleIndex]}`)
-	}
-
-	exitEveryRule(ctx: ParserRuleContext) {
-		console.log("exit    " + this.parser.ruleNames[ctx.ruleIndex] + ", LT(1)=" + this.parser._input.LT(1).text);
-	};
-}
 
 // this is all the parsing support code essentially; most of it is error
 // recovery stuff.//
 export abstract class Parser extends Recognizer<Token, ParserATNSimulator> {
+
+
+
+	private ruleNames: string[];
 
 	// this field maps from the serialized ATN string to the deserialized {@link
 	// ATN} with
@@ -76,8 +59,8 @@ export abstract class Parser extends Recognizer<Token, ParserATNSimulator> {
 	// The error handling strategy for the parser. The default value is a new
 	// instance of {@link DefaultErrorStrategy}.
 	protected _errHandler: ErrorStrategy = new DefaultErrorStrategy();
-	
-	protected _precedenceStack: number[] = [] ;
+
+	protected _precedenceStack: number[] = [];
 
 	// The {@link ParserRuleContext} object for the currently executing rule.
 	// this is always non-null during the parsing process.
@@ -95,7 +78,7 @@ export abstract class Parser extends Recognizer<Token, ParserATNSimulator> {
 	protected _tracer = null;
 	// The list of {@link ParseTreeListener} listeners registered to receive
 	// events during the parse.
-	protected _parseListeners : ParseTreeListener[] = null;
+	protected _parseListeners: ParseTreeListener[] = null;
 	// The number of syntax errors reported during parsing. this value is
 	// incremented each time {@link //notifyErrorListeners} is called.
 	protected _syntaxErrors = 0;
@@ -325,22 +308,24 @@ export abstract class Parser extends Recognizer<Token, ParserATNSimulator> {
 	// String id = m.get("ID");
 	// </pre>
 
-	compileParseTreePattern(pattern, patternRuleIndex, lexer) {
-		lexer = lexer || null;
-		if (lexer === null) {
-			if (this.getTokenStream() !== null) {
-				var tokenSource = this.getTokenStream().tokenSource;
-				if (tokenSource instanceof Lexer) {
-					lexer = tokenSource;
+	/* TOOLONLY
+		compileParseTreePattern(pattern, patternRuleIndex, lexer) {
+			lexer = lexer || null;
+			if (lexer === null) {
+				if (this.getTokenStream() !== null) {
+					var tokenSource = this.getTokenStream().tokenSource;
+					if (tokenSource instanceof Lexer) {
+						lexer = tokenSource;
+					}
 				}
 			}
-		}
-		if (lexer === null) {
-			throw "Parser can't discover a lexer to use";
-		}
-		var m = new ParseTreePatternMatcher(lexer, this);
-		return m.compile(pattern, patternRuleIndex);
-	};
+			if (lexer === null) {
+				throw "Parser can't discover a lexer to use";
+			}
+			var m = new ParseTreePatternMatcher(lexer, this);
+			return m.compile(pattern, patternRuleIndex);
+		};
+	*/
 
 	getInputStream() {
 		return this.getTokenStream();
@@ -694,5 +679,31 @@ export abstract class Parser extends Recognizer<Token, ParserATNSimulator> {
 			this._tracer = new TraceListener(this);
 			this.addParseListener(this._tracer);
 		}
-	};
+	}
+
+	static TraceListener = class 
+}
+
+export module Parser {
+	export class ITraceListener extends ParseTreeListener {
+		constructor(public parser: Parser) {
+			super();
+		}
+
+		enterEveryRule(ctx: ParserRuleContext) {
+			console.log("enter   " + this.parser.ruleNames[ctx.ruleIndex] + ", LT(1)=" + this.parser._input.LT(1).text);
+		};
+
+		visitTerminal(node: TerminalNode) {
+			console.log("consume " + node.symbol + " rule " + this.parser.ruleNames[this.parser._ctx.ruleIndex]);
+		};
+
+		vistErrorNode(node: ErrorNode) {
+			console.log(`error ${node.symbol} rule ${this.parser.ruleNames[this.parser._ctx.ruleIndex]}`)
+		}
+
+		exitEveryRule(ctx: ParserRuleContext) {
+			console.log("exit    " + this.parser.ruleNames[ctx.ruleIndex] + ", LT(1)=" + this.parser._input.LT(1).text);
+		};
+	}
 }
