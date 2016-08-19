@@ -33,7 +33,7 @@
 // info about the set, with support for combining similar configurations using a
 // graph-structured stack.
 ///
-
+import * as Utils from '../Utils'
 var ATN = require('./ATN').ATN;
 
 const Set = undefined;
@@ -57,7 +57,7 @@ function equalATNConfigs(a, b) {
 }
 
 
-function ATNConfigSet(fullCtx) {
+export function ATNConfigSet(fullCtx) {
 	//
 	// The reason that we need this is because we don't want the hash map to use
 	// the standard hash code and equals. We need all configurations with the

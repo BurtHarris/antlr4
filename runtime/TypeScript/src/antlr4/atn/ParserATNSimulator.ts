@@ -265,7 +265,9 @@ import { BitSet } from '../BitSet'
 import {ATN} from'./ATN';
 import { ATNConfig } from './ATNConfig';
 import { ATNConfigSet } from './ATNConfigSet';
-import {Token, Interval, Parser, RuleContext, ParserRuleContext, SemanticContext} from '../index';
+import { RuleContext } from '../RuleContext';
+import {SemanticContext} from './SemanticContext'
+import {Token, Interval, Parser, ParserRuleContext} from '../index';
 import { DFAState } from './../dfa/DFAState';
 import { PredPrediction } from './../dfa/DFAState';
 import {ATNSimulator} from './ATNSimulator';

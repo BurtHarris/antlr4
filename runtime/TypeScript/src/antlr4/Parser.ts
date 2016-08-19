@@ -55,7 +55,7 @@ export abstract class Parser extends Recognizer<Token, ParserATNSimulator> {
 	private bypassAltsAtnCache = {};
 
 	// The input stream.
-	protected _input = null;
+	protected _input = null: TokenStream;
 	// The error handling strategy for the parser. The default value is a new
 	// instance of {@link DefaultErrorStrategy}.
 	protected _errHandler: ErrorStrategy = new DefaultErrorStrategy();

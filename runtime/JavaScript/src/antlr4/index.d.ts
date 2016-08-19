@@ -164,7 +164,20 @@ interface ParserRuleContext extends RuleContext {
 }
 
 export class Lexer extends Recognizer {
-    public inputStream: InputStream;
+    static HIDDEN: number;
+    protected _input: InputStream;
+    protected _factory;
+    protected _tokenFactorySourcePair;
+    protected _interp ;
+    protected _token;
+    protected _tokenStartCharIndex: number;
+    protected _tokenStartLine: number;
+    protected _hitEOF: boolean;
+    protected _channel: number;
+    protected _type: number;
+    protected _modeStack: [number];
+    protected _mode: number;
+    protected _text: string;
     public symbolicNames: string[];
 
     public reset(): void;
@@ -175,9 +188,18 @@ export class Lexer extends Recognizer {
     public popMode(): number;
 }
 
+export class Parser {
+    protected _input: TokenStream;
+    constructor( input: TokenStream );
+    getCurrentToken() : Token;
+
+}
+
+
 export class BufferedTokenStream implements TokenStream {
     public /*readonly*/ index: number;
     public /*readonly*/ size: number;
+    static HIDDEN: number;
 
     constructor( tokenSource: TokenSource );
 
@@ -196,6 +218,7 @@ export class CommonTokenStream extends BufferedTokenStream {
     public /*readonly*/ index: number;
     public /*readonly*/ size: number;
 
+
     constructor( lexer: Lexer );
 
     public mark(): number;
@@ -209,10 +232,6 @@ export class CommonTokenStream extends BufferedTokenStream {
     public getText(start: Token, stop: Token ): string;
     public fetch( count: number ): number;
     public getTokens( start?: number, stop?: number, types?: number[]): Token[];
-}
-
-export class Parser {
-    constructor( tokens: TokenStream )
 }
 
 export interface TokenSource {
@@ -237,7 +256,8 @@ export enum Channel {
 
 // Tokens and related
 
-export interface Token {
+export class Token {
+    static      DEFAULT_CHANNEL: number;
 	/*readonly*/ type: TokenType;
                  text: string;
 	/*readonly*/ channel: Channel; // The parser ignores everything not on DEFAULT_CHANNEL
