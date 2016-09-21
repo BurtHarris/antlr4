@@ -57,7 +57,6 @@ import { ParserRuleContext } from './ParserRuleContext';
 
 export class RuleContext implements RuleNode {
     constructor(public parentCtx = null, public invokingState = -1) {
-        super();
         // What state invoked the rule associated with this context?
         // The "return address" is the followState of invokingState
         // If parent is null, this should be -1.

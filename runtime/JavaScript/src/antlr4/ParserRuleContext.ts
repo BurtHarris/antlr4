@@ -221,8 +221,6 @@ export class ParserRuleContext extends RuleContext {
 }
 
 export class InterpreterRuleContext extends ParserRuleContext {
-    ruleIndex: number;
-
     constructor( 
             parent : ParserRuleContext, 
             invokingStateNumber: number, 
