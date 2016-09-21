@@ -37,7 +37,6 @@ var RuleContext = (function () {
         if (invokingState === void 0) { invokingState = -1; }
         this.parentCtx = parentCtx;
         this.invokingState = invokingState;
-        _super.call(this);
         // What state invoked the rule associated with this context?
         // The "return address" is the followState of invokingState
         // If parent is null, this should be -1.

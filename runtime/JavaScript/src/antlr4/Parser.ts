@@ -84,6 +84,15 @@ export abstract class Parser extends Recognizer {
     // incremented each time {@link //notifyErrorListeners} is called.
     _syntaxErrors = 0;
 
+    // These are apparently provided by generated subclass.  
+    // TypeScript doesn't support abstrat fields, so we declare them here
+    ruleNames: string[];
+    literalNames: string[];
+    symbolicNames: string[];
+    _buildParseTrees: boolean;
+    bypassAltsAtnCache;
+    printer: any;
+
     constructor(input) {
         super();
         this._precedenceStack.push(0);

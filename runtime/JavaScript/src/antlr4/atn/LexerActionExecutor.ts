@@ -143,9 +143,9 @@ export class LexerActionExecutor {
             for (var i = 0; i < this.lexerActions.length; i++) {
                 var lexerAction = this.lexerActions[i];
                 if (lexerAction instanceof LexerIndexedCustomAction) {
-                    var offset = lexerAction.offset;
+                    var offset = (<LexerIndexedCustomAction>lexerAction).offset;
                     input.seek(startIndex + offset);
-                    lexerAction = lexerAction.action;
+                    lexerAction = (<LexerIndexedCustomAction>lexerAction).action;
                     requiresSeek = (startIndex + offset) !== stopIndex;
                 } else if (lexerAction.isPositionDependent) {
                     input.seek(stopIndex);

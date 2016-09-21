@@ -29,6 +29,8 @@
  // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  //
 
+import { Lexer } from '../Lexer';
+
 export class LexerActionType {
     constructor() {
     }
@@ -43,12 +45,13 @@ export class LexerActionType {
     static TYPE = 7;        //The type of a {@link LexerTypeAction} action.
 }
 
-export class LexerAction {
+export abstract class LexerAction {
     constructor(public actionType) {
     }
 
-    isPositionDependent = false;
+    abstract execute(lexer: Lexer);
 
+    isPositionDependent = false;
 
     hashString() {
         return "" + this.actionType;
@@ -57,6 +60,7 @@ export class LexerAction {
     equals(other) {
         return this === other;
     };
+
 }
 
 

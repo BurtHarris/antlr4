@@ -273,7 +273,7 @@ exports.ATNConfigSet = ATNConfigSet;
 var OrderedATNConfigSet = (function (_super) {
     __extends(OrderedATNConfigSet, _super);
     function OrderedATNConfigSet() {
-        _super.call(this, this);
+        _super.call(this);
         this.configLookup = new Set();
     }
     return OrderedATNConfigSet;

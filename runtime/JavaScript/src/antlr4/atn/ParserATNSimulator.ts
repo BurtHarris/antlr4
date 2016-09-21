@@ -287,6 +287,7 @@ import { NoViableAltException } from './../error/Errors';
 
 import { SingletonPredictionContext } from './../PredictionContext';
 import { predictionContextFromRuleContext } from './../PredictionContext';
+import { Parser } from '../Parser';
 
 export class ParserATNSimulator extends ATNSimulator {
     constructor( 

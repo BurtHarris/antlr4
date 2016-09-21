@@ -277,7 +277,7 @@ export class OrderedATNConfigSet extends ATNConfigSet {
     configLookup= new Set();
 
     constructor() {
-        super(this);
+        super();
     }
 }
 
