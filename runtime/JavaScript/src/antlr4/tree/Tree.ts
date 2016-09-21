@@ -53,19 +53,19 @@ export interface SyntaxTree extends Tree {
 }
 
 export interface ParseTree extends SyntaxTree {
-    accept<T>(visitor: ParseTreeVisitor<T>);
+    accept<T>(visitor: ParseTreeVisitor);
     getChild(i: number) : ParseTree;
     getParent(): ParseTree;
     getText(): string;
 }
 
 export interface RuleNode extends ParseTree {
-    accept<T>(visitor: ParseTreeVisitor<T>);
+    accept<T>(visitor: ParseTreeVisitor);
     getRuleContext() : RuleContext;
 }
 
 export abstract class TerminalNode implements ParseTree {
-    abstract accept<T>(visitor: ParseTreeVisitor<T>);
+    abstract accept<T>(visitor: ParseTreeVisitor);
     abstract getSymbol(): Token;
     abstract getChild(i: number) : ParseTree;
     abstract getParent(): ParseTree;
@@ -79,10 +79,10 @@ export abstract class ErrorNode extends TerminalNode {
 
 // TODO:  this probably needs to be split into interface and 
 // base class.
-export abstract class ParseTreeVisitor<T> {
+export abstract class ParseTreeVisitor {
     constructor() {}
 
-    visit(ctx): T {
+    visit(ctx) {
         if (Utils.isArray(ctx)) {
             var self = this;
     		return ctx.map(function(child) { return visitAtom(self, child)});
@@ -91,10 +91,10 @@ export abstract class ParseTreeVisitor<T> {
         }
     };
 
-    visitTerminal(node: TerminalNode): T {
+    visitTerminal(node: TerminalNode) {
     };
 
-    visitErrorNode(node: ErrorNode): T {
+    visitErrorNode(node: ErrorNode) {
     };
 }
 
@@ -193,7 +193,7 @@ export class ErrorNodeImpl extends TerminalNodeImpl implements ErrorNode {
         return true;
     }
 
-    accept(visitor: ParseTreeVisitor<T>) {
+    accept(visitor: ParseTreeVisitor) {
         return visitor.visitErrorNode(this);
     }
 
