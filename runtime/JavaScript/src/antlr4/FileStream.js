@@ -28,23 +28,28 @@
 //   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 //   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 
-
+"use strict";
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 //
 //  This is an InputStream that is loaded from a file all at once
 //  when you construct the object.
 // 
-var InputStream = require('./InputStream').InputStream;
+var InputStream_1 = require('./InputStream');
 var isNodeJs = typeof window === 'undefined' && typeof importScripts === 'undefined';
 var fs = isNodeJs ? require("fs") : null;
-
-function FileStream(fileName) {
-	var data = fs.readFileSync(fileName, "utf8");
-	InputStream.call(this, data);
-	this.fileName = fileName;
-	return this;
-}
-
-FileStream.prototype = Object.create(InputStream.prototype);
-FileStream.prototype.constructor = FileStream;
-
+var FileStream = (function (_super) {
+    __extends(FileStream, _super);
+    function FileStream(fileName) {
+        var data = fs.readFileSync(fileName, "utf8");
+        _super.call(this, data);
+        this.fileName = fileName;
+        return this;
+    }
+    return FileStream;
+}(InputStream_1.InputStream));
 exports.FileStream = FileStream;
+//# sourceMappingURL=FileStream.js.map
