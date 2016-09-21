@@ -32,75 +32,71 @@
 //  It is the most abstract interface for all the trees used by ANTLR.
 ///
 
-var Token = require('./../Token').Token;
-var Interval = require('./../IntervalSet').Interval;
-var INVALID_INTERVAL = new Interval(-1, -2);
-var Utils = require('../Utils.js');
+import { Token } from './../Token';
+import { Interval } from './../IntervalSet';
+export const INVALID_INTERVAL = new Interval(-1, -2);
+import Utils = require('../Utils');
+import { RuleContext } from '../RuleContext'
 
-
-function Tree() {
-	return this;
+// TypeScript interface Based on Java runtime interface.
+export interface  Tree {
+    //getChild(i: number) : Tree;
+    getChildCount() : number;
+    //getParent() : Tree;
+    getPayload() : any;
+    // toStringTree() : string; // Implemented on Trees in Javascript
 }
 
-function SyntaxTree() {
-	Tree.call(this);
-	return this;
+// TypeScript interface Based on Java runtime interface.
+export interface SyntaxTree extends Tree {
+    getSourceInterval() : Interval;
 }
 
-SyntaxTree.prototype = Object.create(Tree.prototype);
-SyntaxTree.prototype.constructor = SyntaxTree;
-
-function ParseTree() {
-	SyntaxTree.call(this);
-	return this;
+export interface ParseTree extends SyntaxTree {
+    accept<T>(visitor: ParseTreeVisitor<T>);
+    getChild(i: number) : ParseTree;
+    getParent(): ParseTree;
+    getText(): string;
 }
 
-ParseTree.prototype = Object.create(SyntaxTree.prototype);
-ParseTree.prototype.constructor = ParseTree;
-
-function RuleNode() {
-	ParseTree.call(this);
-	return this;
+export interface RuleNode extends ParseTree {
+    accept<T>(visitor: ParseTreeVisitor<T>);
+    getRuleContext() : RuleContext;
 }
 
-RuleNode.prototype = Object.create(ParseTree.prototype);
-RuleNode.prototype.constructor = RuleNode;
-
-function TerminalNode() {
-	ParseTree.call(this);
-	return this;
+export abstract class TerminalNode implements ParseTree {
+    abstract accept<T>(visitor: ParseTreeVisitor<T>);
+    abstract getSymbol(): Token;
+    abstract getChild(i: number) : ParseTree;
+    abstract getParent(): ParseTree;
+    abstract getText(): string;
 }
 
-TerminalNode.prototype = Object.create(ParseTree.prototype);
-TerminalNode.prototype.constructor = TerminalNode;
-
-function ErrorNode() {
-	TerminalNode.call(this);
-	return this;
+// While the Java runtime makes this class an interface, the
+// JavaScript runtime uses a class to allow runtime checking
+export abstract class ErrorNode extends TerminalNode {
 }
 
-ErrorNode.prototype = Object.create(TerminalNode.prototype);
-ErrorNode.prototype.constructor = ErrorNode;
+// TODO:  this probably needs to be split into interface and 
+// base class.
+export abstract class ParseTreeVisitor<T> {
+    constructor() {}
 
-function ParseTreeVisitor() {
-	return this;
+    visit(ctx): T {
+        if (Utils.isArray(ctx)) {
+            var self = this;
+    		return ctx.map(function(child) { return visitAtom(self, child)});
+        } else {
+            return visitAtom(this, ctx);
+        }
+    };
+
+    visitTerminal(node: TerminalNode): T {
+    };
+
+    visitErrorNode(node: ErrorNode): T {
+    };
 }
-
-ParseTreeVisitor.prototype.visit = function(ctx) {
-	if (Utils.isArray(ctx)) {
-		var self = this;
-		return ctx.map(function(child) { return visitAtom(self, child)});
-	} else {
-		return visitAtom(this, ctx);
-	}
-};
-
-ParseTreeVisitor.prototype.visitTerminal = function(node) {
-};
-
-ParseTreeVisitor.prototype.visitErrorNode = function(node) {
-};
-
 
 var visitAtom = function(visitor, ctx) {
 	if (ctx.parser === undefined) { //is terminal
@@ -113,75 +109,74 @@ var visitAtom = function(visitor, ctx) {
 	return visitor[funcName](ctx);
 };
 
-function ParseTreeListener() {
-	return this;
+// Note while Java in runtime ParseTreeListener is an interface,
+// the JavaScript runtime has made it a class
+export abstract class ParseTreeListener {
+    constructor() {
+    }
+    
+    visitTerminal(node: TerminalNode): void {
+    };
+
+    visitErrorNode(node: ErrorNode): void { 
+    };
+    
+    enterEveryRule(ctx: any): void {
+    };
+ 
+    exitEveryRule(ctx: any) : void {
+    };
 }
 
-ParseTreeListener.prototype.visitTerminal = function(node) {
-};
+export class TerminalNodeImpl implements TerminalNode {
+    constructor(public symbol: Token) {
+    }
+    parentCtx: ParseTree = null;
 
-ParseTreeListener.prototype.visitErrorNode = function(node) {
-};
+    getChild(i: number): ParseTree {
+        return null;
+    };
 
-ParseTreeListener.prototype.enterEveryRule = function(node) {
-};
+    getSymbol(): Token {
+        return this.symbol;
+    };
 
-ParseTreeListener.prototype.exitEveryRule = function(node) {
-};
+    getParent(): ParseTree {
+        return this.parentCtx;
+    };
 
-function TerminalNodeImpl(symbol) {
-	TerminalNode.call(this);
-	this.parentCtx = null;
-	this.symbol = symbol;
-	return this;
+    getPayload(): Token {
+        return this.symbol;
+    };
+
+    getSourceInterval(): Interval {
+        if (this.symbol === null) {
+            return INVALID_INTERVAL;
+        }
+        var tokenIndex = this.symbol.tokenIndex;
+        return new Interval(tokenIndex, tokenIndex);
+    };
+
+    getChildCount(): number {
+        return 0;
+    };
+
+    accept(visitor) {
+        return visitor.visitTerminal(this);
+    };
+
+    getText() {
+        return this.symbol.text;
+    };
+
+    toString() {
+        if (this.symbol.type === Token.EOF) {
+            return "<EOF>";
+        } else {
+            return this.symbol.text;
+        }
+    };
 }
-
-TerminalNodeImpl.prototype = Object.create(TerminalNode.prototype);
-TerminalNodeImpl.prototype.constructor = TerminalNodeImpl;
-
-TerminalNodeImpl.prototype.getChild = function(i) {
-	return null;
-};
-
-TerminalNodeImpl.prototype.getSymbol = function() {
-	return this.symbol;
-};
-
-TerminalNodeImpl.prototype.getParent = function() {
-	return this.parentCtx;
-};
-
-TerminalNodeImpl.prototype.getPayload = function() {
-	return this.symbol;
-};
-
-TerminalNodeImpl.prototype.getSourceInterval = function() {
-	if (this.symbol === null) {
-		return INVALID_INTERVAL;
-	}
-	var tokenIndex = this.symbol.tokenIndex;
-	return new Interval(tokenIndex, tokenIndex);
-};
-
-TerminalNodeImpl.prototype.getChildCount = function() {
-	return 0;
-};
-
-TerminalNodeImpl.prototype.accept = function(visitor) {
-	return visitor.visitTerminal(this);
-};
-
-TerminalNodeImpl.prototype.getText = function() {
-	return this.symbol.text;
-};
-
-TerminalNodeImpl.prototype.toString = function() {
-	if (this.symbol.type === Token.EOF) {
-		return "<EOF>";
-	} else {
-		return this.symbol.text;
-	}
-};
 
 // Represents a token that was consumed during resynchronization
 // rather than during a valid match operation. For example,
@@ -189,68 +184,64 @@ TerminalNodeImpl.prototype.toString = function() {
 // and deletion as well as during "consume until error recovery set"
 // upon no viable alternative exceptions.
 
-function ErrorNodeImpl(token) {
-	TerminalNodeImpl.call(this, token);
-	return this;
+export class ErrorNodeImpl extends TerminalNodeImpl implements ErrorNode {
+    constructor(token) {
+        super(token);
+    }
+
+    isErrorNode() {
+        return true;
+    }
+
+    accept(visitor: ParseTreeVisitor<T>) {
+        return visitor.visitErrorNode(this);
+    }
+
+    // TODO: is this needed or not?
+    
+
 }
 
-ErrorNodeImpl.prototype = Object.create(TerminalNodeImpl.prototype);
-ErrorNodeImpl.prototype.constructor = ErrorNodeImpl;
+export class ParseTreeWalker {
+    constructor() {
+        return this;
+    }
 
-ErrorNodeImpl.prototype.isErrorNode = function() {
-	return true;
-};
+    walk(listener, t) {
+        var errorNode = t instanceof ErrorNode ||
+            (t.isErrorNode !== undefined && t.isErrorNode());
+        if (errorNode) {
+            listener.visitErrorNode(t);
+        } else if (t instanceof TerminalNode) {
+            listener.visitTerminal(t);
+        } else {
+            this.enterRule(listener, t);
+            for (var i = 0; i < t.getChildCount(); i++) {
+                var child = t.getChild(i);
+                this.walk(listener, child);
+            }
+            this.exitRule(listener, t);
+        }
+    }
 
-ErrorNodeImpl.prototype.accept = function(visitor) {
-	return visitor.visitErrorNode(this);
-};
+    //
+    // The discovery of a rule node, involves sending two events: the generic
+    // {@link ParseTreeListener//enterEveryRule} and a
+    // {@link RuleContext}-specific event. First we trigger the generic and then
+    // the rule specific. We to them in reverse order upon finishing the node.
+    //
+    enterRule(listener, r) {
+        var ctx = r.getRuleContext();
+        listener.enterEveryRule(ctx);
+        ctx.enterRule(listener);
+    };
 
-function ParseTreeWalker() {
-	return this;
+    exitRule(listener, r) {
+        var ctx = r.getRuleContext();
+        ctx.exitRule(listener);
+        listener.exitEveryRule(ctx);
+    };
+
+    static DEFAULT = new ParseTreeWalker();
 }
 
-ParseTreeWalker.prototype.walk = function(listener, t) {
-	var errorNode = t instanceof ErrorNode ||
-			(t.isErrorNode !== undefined && t.isErrorNode());
-	if (errorNode) {
-		listener.visitErrorNode(t);
-	} else if (t instanceof TerminalNode) {
-		listener.visitTerminal(t);
-	} else {
-		this.enterRule(listener, t);
-		for (var i = 0; i < t.getChildCount(); i++) {
-			var child = t.getChild(i);
-			this.walk(listener, child);
-		}
-		this.exitRule(listener, t);
-	}
-};
-//
-// The discovery of a rule node, involves sending two events: the generic
-// {@link ParseTreeListener//enterEveryRule} and a
-// {@link RuleContext}-specific event. First we trigger the generic and then
-// the rule specific. We to them in reverse order upon finishing the node.
-//
-ParseTreeWalker.prototype.enterRule = function(listener, r) {
-	var ctx = r.getRuleContext();
-	listener.enterEveryRule(ctx);
-	ctx.enterRule(listener);
-};
-
-ParseTreeWalker.prototype.exitRule = function(listener, r) {
-	var ctx = r.getRuleContext();
-	ctx.exitRule(listener);
-	listener.exitEveryRule(ctx);
-};
-
-ParseTreeWalker.DEFAULT = new ParseTreeWalker();
-
-exports.RuleNode = RuleNode;
-exports.ErrorNode = ErrorNode;
-exports.TerminalNode = TerminalNode;
-exports.ErrorNodeImpl = ErrorNodeImpl;
-exports.TerminalNodeImpl = TerminalNodeImpl;
-exports.ParseTreeListener = ParseTreeListener;
-exports.ParseTreeVisitor = ParseTreeVisitor;
-exports.ParseTreeWalker = ParseTreeWalker;
-exports.INVALID_INTERVAL = INVALID_INTERVAL;

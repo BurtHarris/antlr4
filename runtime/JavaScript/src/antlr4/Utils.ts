@@ -1,8 +1,9 @@
-function arrayToString(a) {
+export function arrayToString(a) {
 	return "[" + a.join(", ") + "]";
 }
 
-String.prototype.hashCode = function(s) {
+// Avoid poluting global string with this function
+export function stringHashCode(s: string): number {
 	var hash = 0;
 	if (this.length === 0) {
 		return hash;
@@ -23,165 +24,159 @@ function standardHashFunction(a) {
 	return a.hashString();
 }
 
-function Set(hashFunction, equalsFunction) {
-	this.data = {};
-	this.hashFunction = hashFunction || standardHashFunction;
-	this.equalsFunction = equalsFunction || standardEqualsFunction;
-	return this;
-}
+export class Set<T> {
+    data = {};
+    constructor(public hashFunction = standardHashFunction, 
+                public equalsFunction = standardEqualsFunction ) {
+    }
 
-Object.defineProperty(Set.prototype, "length", {
-	get : function() {
+    get length() {
 		return this.values().length;
-	}
-});
+    }
 
-Set.prototype.add = function(value) {
-	var hash = this.hashFunction(value);
-	var key = "hash_" + hash.hashCode();
-	if(key in this.data) {
-		var i;
-		var values = this.data[key];
-		for(i=0;i<values.length; i++) {
-			if(this.equalsFunction(value, values[i])) {
-				return values[i];
-			}
-		}
-		values.push(value);
-		return value;
-	} else {
-		this.data[key] = [ value ];
-		return value;
-	}
-};
+    add(value) {
+        var hash = this.hashFunction(value);
+        var key = "hash_" + hash.hashCode();
+        if(key in this.data) {
+            var i;
+            var values = this.data[key];
+            for(i=0;i<values.length; i++) {
+                if(this.equalsFunction(value, values[i])) {
+                    return values[i];
+                }
+            }
+            values.push(value);
+            return value;
+        } else {
+            this.data[key] = [ value ];
+            return value;
+        }
+    };
 
-Set.prototype.contains = function(value) {
-	var hash = this.hashFunction(value);
-	var key = hash.hashCode();
-	if(key in this.data) {
-		var i;
-		var values = this.data[key];
-		for(i=0;i<values.length; i++) {
-			if(this.equalsFunction(value, values[i])) {
-				return true;
-			}
-		}
-	}
-	return false;
-};
+    contains(value) {
+        var hash = this.hashFunction(value);
+        var key = stringHashCode(hash);
+        if(key in this.data) {
+            var i;
+            var values = this.data[key];
+            for(i=0;i<values.length; i++) {
+                if(this.equalsFunction(value, values[i])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
 
-Set.prototype.values = function() {
-	var l = [];
-	for(var key in this.data) {
-		if(key.indexOf("hash_")===0) {
-			l = l.concat(this.data[key]);
-		}
-	}
-	return l;
-};
+    values(): T[] {
+        var l = [];
+        for(var key in this.data) {
+            if(key.indexOf("hash_")===0) {
+                l = l.concat(this.data[key]);
+            }
+        }
+        return l;
+    };
 
-Set.prototype.toString = function() {
-	return arrayToString(this.values());
-};
-
-function BitSet() {
-	this.data = [];
-	return this;
+    toString() {
+        return arrayToString(this.values());
+    };
 }
 
-BitSet.prototype.add = function(value) {
-	this.data[value] = true;
-};
+export class BitSet {
+    data = [];
+    
+    add(value) {
+        this.data[value] = true;
+    };
 
-BitSet.prototype.or = function(set) {
-	var bits = this;
-	Object.keys(set.data).map( function(alt) { bits.add(alt); });
-};
+    or(set) {
+        var bits = this;
+        Object.keys(set.data).map( function(alt) { bits.add(alt); });
+    };
 
-BitSet.prototype.remove = function(value) {
-	delete this.data[value];
-};
+    remove(value) {
+        delete this.data[value];
+    };
 
-BitSet.prototype.contains = function(value) {
-	return this.data[value] === true;
-};
+    contains(value) {
+        return this.data[value] === true;
+    };
 
-BitSet.prototype.values = function() {
-	return Object.keys(this.data);
-};
+    values() {
+        return Object.keys(this.data);
+    };
 
-BitSet.prototype.minValue = function() {
-	return Math.min.apply(null, this.values());
-};
+    minValue() {
+        return Math.min.apply(null, this.values());
+    };
 
-BitSet.prototype.hashString = function() {
-	return this.values().toString();
-};
+    hashString() {
+        return this.values().toString();
+    };
 
-BitSet.prototype.equals = function(other) {
-	if(!(other instanceof BitSet)) {
-		return false;
-	}
-	return this.hashString()===other.hashString();
-};
+    equals(other: BitSet) {
+        if(!(other instanceof BitSet)) {
+            return false;
+        }
+        return this.hashString()===other.hashString();
+    };
 
-Object.defineProperty(BitSet.prototype, "length", {
-	get : function() {
-		return this.values().length;
-	}
-});
-
-BitSet.prototype.toString = function() {
-	return "{" + this.values().join(", ") + "}";
-};
-
-function AltDict() {
-	this.data = {};
-	return this;
+    get length() {
+        return this.values().length;
+    }
+    
+    toString() {
+        return "{" + this.values().join(", ") + "}";
+    };
 }
 
-AltDict.prototype.get = function(key) {
-	key = "k-" + key;
-	if(key in this.data){
-		return this.data[key];
-	} else {
-		return null;
-	}
-};
+export class AltDict {
+    data = {};
 
-AltDict.prototype.put = function(key, value) {
-	key = "k-" + key;
-	this.data[key] = value;
-};
 
-AltDict.prototype.values = function() {
-	var data = this.data;
-	var keys = Object.keys(this.data);
-	return keys.map(function(key) {
-		return data[key];
-	});
-};
+    get(key) {
+        key = "k-" + key;
+        if (key in this.data) {
+            return this.data[key];
+        } else {
+            return null;
+        }
+    };
 
-function DoubleDict() {
-	return this;
+    put(key, value) {
+        key = "k-" + key;
+        this.data[key] = value;
+    };
+
+    values() {
+        var data = this.data;
+        var keys = Object.keys(this.data);
+        return keys.map(function(key) {
+            return data[key];
+	});    
+};
 }
 
-DoubleDict.prototype.get = function(a, b) {
-	var d = this[a] || null;
-	return d===null ? null : (d[b] || null);
-};
+export class DoubleDict {
 
-DoubleDict.prototype.set = function(a, b, o) {
-	var d = this[a] || null;
-	if(d===null) {
-		d = {};
-		this[a] = d;
-	}
-	d[b] = o;
-};
+    get(a, b) {
+        var d = this[a] || null;
+        return d===null ? null : (d[b] || null);
+    };
 
+    set(a, b, o) {
+        var d = this[a] || null;
+        if (d===null) {
+            d = {};
+            this[a] = d;
+        }
+        d[b] = o;
+    };
 
-function escapeWhitespace(s, escapeSpaces) {
+}
+
+export function escapeWhitespace(s: string, escapeSpaces) {
 	s = s.replace("\t","\\t");
 	s = s.replace("\n","\\n");
 	s = s.replace("\r","\\r");
@@ -191,17 +186,11 @@ function escapeWhitespace(s, escapeSpaces) {
 	return s;
 }
 
-exports.isArray = function (entity) {
+export function isArray(entity) {
 	return Object.prototype.toString.call( entity ) === '[object Array]'
 };
 
-exports.titleCase = function(str) {
+export function titleCase(str) {
 	return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1);});
 };
 
-exports.Set = Set;
-exports.BitSet = BitSet;
-exports.AltDict = AltDict;
-exports.DoubleDict = DoubleDict;
-exports.escapeWhitespace = escapeWhitespace;
-exports.arrayToString = arrayToString;

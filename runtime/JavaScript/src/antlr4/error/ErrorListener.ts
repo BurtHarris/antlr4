@@ -32,80 +32,72 @@
 // default implementation of each method does nothing, but can be overridden as
 // necessary.
 
-function ErrorListener() {
-	return this;
+export class ErrorListener {
+    constructor() {}
+
+
+    syntaxError(recognizer, offendingSymbol, line, column, msg, e) {
+    };
+
+    reportAmbiguity(recognizer, dfa, startIndex, stopIndex, exact, ambigAlts, configs) {
+    };
+
+    reportAttemptingFullContext(recognizer, dfa, startIndex, stopIndex, conflictingAlts, configs) {
+    };
+
+    reportContextSensitivity(recognizer, dfa, startIndex, stopIndex, prediction, configs) {
+    };
 }
 
-ErrorListener.prototype.syntaxError = function(recognizer, offendingSymbol, line, column, msg, e) {
-};
-
-ErrorListener.prototype.reportAmbiguity = function(recognizer, dfa, startIndex, stopIndex, exact, ambigAlts, configs) {
-};
-
-ErrorListener.prototype.reportAttemptingFullContext = function(recognizer, dfa, startIndex, stopIndex, conflictingAlts, configs) {
-};
-
-ErrorListener.prototype.reportContextSensitivity = function(recognizer, dfa, startIndex, stopIndex, prediction, configs) {
-};
-
-function ConsoleErrorListener() {
-	ErrorListener.call(this);
-	return this;
-}
-
-ConsoleErrorListener.prototype = Object.create(ErrorListener.prototype);
-ConsoleErrorListener.prototype.constructor = ConsoleErrorListener;
-
-//
-// Provides a default instance of {@link ConsoleErrorListener}.
-//
-ConsoleErrorListener.INSTANCE = new ConsoleErrorListener();
-
-//
-// {@inheritDoc}
-//
-// <p>
-// This implementation prints messages to {@link System//err} containing the
-// values of {@code line}, {@code charPositionInLine}, and {@code msg} using
-// the following format.</p>
-//
-// <pre>
-// line <em>line</em>:<em>charPositionInLine</em> <em>msg</em>
-// </pre>
-//
-ConsoleErrorListener.prototype.syntaxError = function(recognizer, offendingSymbol, line, column, msg, e) {
-    console.error("line " + line + ":" + column + " " + msg);
-};
-
-function ProxyErrorListener(delegates) {
-	ErrorListener.call(this);
-    if (delegates===null) {
-        throw "delegates";
+export class ConsoleErrorListener extends ErrorListener {
+    constructor() {
+        super();
     }
-    this.delegates = delegates;
-	return this;
+
+    //
+    // Provides a default instance of {@link ConsoleErrorListener}.
+    //
+    static INSTANCE = new ConsoleErrorListener();
+
+    //
+    // {@inheritDoc}
+    //
+    // <p>
+    // This implementation prints messages to {@link System//err} containing the
+    // values of {@code line}, {@code charPositionInLine}, and {@code msg} using
+    // the following format.</p>
+    //
+    // <pre>
+    // line <em>line</em>:<em>charPositionInLine</em> <em>msg</em>
+    // </pre>
+    //
+    syntaxError(recognizer, offendingSymbol, line, column, msg, e) {
+        console.error("line " + line + ":" + column + " " + msg);
+    };
 }
 
-ProxyErrorListener.prototype = Object.create(ErrorListener.prototype);
-ProxyErrorListener.prototype.constructor = ProxyErrorListener;
+export class ProxyErrorListener extends ErrorListener {
+    constructor(public delegates: Array<ErrorListener>) {
+        super()
+        if (delegates===null) {
+            throw "delegates";
+        }
+    }
+    
+    syntaxError(recognizer, offendingSymbol, line, column, msg, e) {
+        this.delegates.map(function(d) { d.syntaxError(recognizer, offendingSymbol, line, column, msg, e); });
+    };
 
-ProxyErrorListener.prototype.syntaxError = function(recognizer, offendingSymbol, line, column, msg, e) {
-    this.delegates.map(function(d) { d.syntaxError(recognizer, offendingSymbol, line, column, msg, e); });
-};
+    reportAmbiguity(recognizer, dfa, startIndex, stopIndex, exact, ambigAlts, configs) {
+        this.delegates.map(function(d) { d.reportAmbiguity(recognizer, dfa, startIndex, stopIndex, exact, ambigAlts, configs); });
+    };
 
-ProxyErrorListener.prototype.reportAmbiguity = function(recognizer, dfa, startIndex, stopIndex, exact, ambigAlts, configs) {
-    this.delegates.map(function(d) { d.reportAmbiguity(recognizer, dfa, startIndex, stopIndex, exact, ambigAlts, configs); });
-};
+    reportAttemptingFullContext(recognizer, dfa, startIndex, stopIndex, conflictingAlts, configs) {
+        this.delegates.map(function(d) { d.reportAttemptingFullContext(recognizer, dfa, startIndex, stopIndex, conflictingAlts, configs); });
+    };
 
-ProxyErrorListener.prototype.reportAttemptingFullContext = function(recognizer, dfa, startIndex, stopIndex, conflictingAlts, configs) {
-	this.delegates.map(function(d) { d.reportAttemptingFullContext(recognizer, dfa, startIndex, stopIndex, conflictingAlts, configs); });
-};
+    reportContextSensitivity(recognizer, dfa, startIndex, stopIndex, prediction, configs) {
+        this.delegates.map(function(d) { d.reportContextSensitivity(recognizer, dfa, startIndex, stopIndex, prediction, configs); });
+    };
 
-ProxyErrorListener.prototype.reportContextSensitivity = function(recognizer, dfa, startIndex, stopIndex, prediction, configs) {
-	this.delegates.map(function(d) { d.reportContextSensitivity(recognizer, dfa, startIndex, stopIndex, prediction, configs); });
-};
-
-exports.ErrorListener = ErrorListener;
-exports.ConsoleErrorListener = ConsoleErrorListener;
-exports.ProxyErrorListener = ProxyErrorListener;
-
+}

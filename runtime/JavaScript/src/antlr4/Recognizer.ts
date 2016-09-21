@@ -29,84 +29,84 @@
 //  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-var Token = require('./Token').Token;
-var ConsoleErrorListener = require('./error/ErrorListener').ConsoleErrorListener;
-var ProxyErrorListener = require('./error/ErrorListener').ProxyErrorListener;
+import { Token } from './Token';
+import { ConsoleErrorListener } from './error/ErrorListener';
+import { ProxyErrorListener } from './error/ErrorListener';
+import { RecognitionException } from './error/Errors';
 
-function Recognizer() {
-    this._listeners = [ ConsoleErrorListener.INSTANCE ];
-    this._interp = null;
-    this._stateNumber = -1;
-    return this;
-}
+export abstract class Recognizer {
+    protected _listeners = [ConsoleErrorListener.INSTANCE];
+    protected _interp = null;
+    protected _stateNumber = -1;
 
-Recognizer.tokenTypeMapCache = {};
-Recognizer.ruleIndexMapCache = {};
+    static ruleIndexMapCache = {};
+    static tokenTypeMapCache = {};
 
+    // These functions provided in ANTLR generated Parser and Lexer classes
+    abstract getTokenNames(): string[];
+    abstract getRuleNames(): string[];
 
-Recognizer.prototype.checkVersion = function(toolVersion) {
-    var runtimeVersion = "4.5.3";
-    if (runtimeVersion!==toolVersion) {
-        console.log("ANTLR runtime and generated code versions disagree: "+runtimeVersion+"!="+toolVersion);
-    }
-};
+    checkVersion(toolVersion) {
+        var runtimeVersion = "4.5.3";
+        if (runtimeVersion!==toolVersion) {
+            console.log("ANTLR runtime and generated code versions disagree: "+runtimeVersion+"!="+toolVersion);
+        }
+    };
 
-Recognizer.prototype.addErrorListener = function(listener) {
-    this._listeners.push(listener);
-};
+    addErrorListener(listener) {
+        this._listeners.push(listener);
+    };
 
-Recognizer.prototype.removeErrorListeners = function() {
-    this._listeners = [];
-};
+    removeErrorListeners() {
+        this._listeners = [];
+    };
 
-Recognizer.prototype.getTokenTypeMap = function() {
-    var tokenNames = this.getTokenNames();
-    if (tokenNames===null) {
-        throw("The current recognizer does not provide a list of token names.");
-    }
-    var result = this.tokenTypeMapCache[tokenNames];
-    if(result===undefined) {
-        result = tokenNames.reduce(function(o, k, i) { o[k] = i; });
-        result.EOF = Token.EOF;
-        this.tokenTypeMapCache[tokenNames] = result;
-    }
-    return result;
-};
+    getTokenTypeMap() {
+        var tokenNames = this.getTokenNames();
+        if (tokenNames===null) {
+            throw("The current recognizer does not provide a list of token names.");
+        }
+        var result = this.tokenTypeMapCache[tokenNames];
+        if(result===undefined) {
+            result = tokenNames.reduce(function(o, k, i) { o[k] = i; });
+            result.EOF = Token.EOF;
+            this.tokenTypeMapCache[tokenNames] = result;
+        }
+        return result;
+    };
 
-// Get a map from rule names to rule indexes.
-//
-// <p>Used for XPath and tree pattern compilation.</p>
-//
-Recognizer.prototype.getRuleIndexMap = function() {
-    var ruleNames = this.getRuleNames();
-    if (ruleNames===null) {
-        throw("The current recognizer does not provide a list of rule names.");
-    }
-    var result = this.ruleIndexMapCache[ruleNames];
-    if(result===undefined) {
-        result = ruleNames.reduce(function(o, k, i) { o[k] = i; });
-        this.ruleIndexMapCache[ruleNames] = result;
-    }
-    return result;
-};
+    // Get a map from rule names to rule indexes.
+    //
+    // <p>Used for XPath and tree pattern compilation.</p>
+    //
+    getRuleIndexMap() {
+        var ruleNames = this.getRuleNames();
+        if (ruleNames===null) {
+            throw("The current recognizer does not provide a list of rule names.");
+        }
+        var result = this.ruleIndexMapCache[ruleNames];
+        if(result===undefined) {
+            result = ruleNames.reduce(function(o, k, i) { o[k] = i; });
+            this.ruleIndexMapCache[ruleNames] = result;
+        }
+        return result;
+    };
 
-Recognizer.prototype.getTokenType = function(tokenName) {
-    var ttype = this.getTokenTypeMap()[tokenName];
-    if (ttype !==undefined) {
-        return ttype;
-    } else {
-        return Token.INVALID_TYPE;
-    }
-};
+    getTokenType(tokenName) {
+        var ttype = this.getTokenTypeMap()[tokenName];
+        if (ttype !==undefined) {
+            return ttype;
+        } else {
+            return Token.INVALID_TYPE;
+        }
+    };
 
-
-// What is the error header, normally line/character position information?//
-Recognizer.prototype.getErrorHeader = function(e) {
-    var line = e.getOffendingToken().line;
-    var column = e.getOffendingToken().column;
-    return "line " + line + ":" + column;
-};
-
+    // What is the error header, normally line/character position information?//
+    getErrorHeader(e) {
+        var line = e.getOffendingToken().line;
+        var column = e.getOffendingToken().column;
+        return "line " + line + ":" + column;
+    };
 
 // How should a token be displayed in an error message? The default
 //  is to display just the text, but during development you might
@@ -121,51 +121,47 @@ Recognizer.prototype.getErrorHeader = function(e) {
 // feature when necessary. For example, see
 // {@link DefaultErrorStrategy//getTokenErrorDisplay}.
 //
-Recognizer.prototype.getTokenErrorDisplay = function(t) {
-    if (t===null) {
-        return "<no token>";
-    }
-    var s = t.text;
-    if (s===null) {
-        if (t.type===Token.EOF) {
-            s = "<EOF>";
-        } else {
-            s = "<" + t.type + ">";
+    getTokenErrorDisplay(t) {
+        if (t===null) {
+            return "<no token>";
         }
-    }
-    s = s.replace("\n","\\n").replace("\r","\\r").replace("\t","\\t");
-    return "'" + s + "'";
-};
+        var s = t.text;
+        if (s===null) {
+            if (t.type===Token.EOF) {
+                s = "<EOF>";
+            } else {
+                s = "<" + t.type + ">";
+            }
+        }
+        s = s.replace("\n","\\n").replace("\r","\\r").replace("\t","\\t");
+        return "'" + s + "'";
+    };
 
-Recognizer.prototype.getErrorListenerDispatch = function() {
-    return new ProxyErrorListener(this._listeners);
-};
+    getErrorListenerDispatch() {
+        return new ProxyErrorListener(this._listeners);
+    };
 
-// subclass needs to override these if there are sempreds or actions
-// that the ATN interp needs to execute
-Recognizer.prototype.sempred = function(localctx, ruleIndex, actionIndex) {
-    return true;
-};
+    // subclass needs to override these if there are sempreds or actions
+    // that the ATN interp needs to execute
+    sempred(localctx, ruleIndex, actionIndex) {
+        return true;
+    };
 
-Recognizer.prototype.precpred = function(localctx , precedence) {
-    return true;
-};
+    precpred(localctx, precedence) {
+        return true;
+    };
 
-//Indicate that the recognizer has changed internal state that is
-//consistent with the ATN state passed in.  This way we always know
-//where we are in the ATN as the parser goes along. The rule
-//context objects form a stack that lets us see the stack of
-//invoking rules. Combine this and we have complete ATN
-//configuration information.
-
-Object.defineProperty(Recognizer.prototype, "state", {
-	get : function() {
+    //Indicate that the recognizer has changed internal state that is
+    //consistent with the ATN state passed in.  This way we always know
+    //where we are in the ATN as the parser goes along. The rule
+    //context objects form a stack that lets us see the stack of
+    //invoking rules. Combine this and we have complete ATN
+    //configuration information.
+    get state() {
 		return this._stateNumber;
-	},
-	set : function(state) {
-		this._stateNumber = state;
-	}
-});
+    }
 
-
-exports.Recognizer = Recognizer;
+    set state(state) {
+        this._stateNumber = state;
+    }
+}

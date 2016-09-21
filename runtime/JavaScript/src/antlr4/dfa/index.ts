@@ -1,4 +1,4 @@
-exports.DFA = require('./DFA').DFA;
-exports.DFASerializer = require('./DFASerializer').DFASerializer;
-exports.LexerDFASerializer = require('./DFASerializer').LexerDFASerializer;
-exports.PredPrediction = require('./DFAState').PredPrediction;
+export { DFA } from './DFA'
+export { DFASerializer } from './DFASerializer';
+export { LexerDFASerializer } from './DFASerializer';
+export { PredPrediction } from './DFAState';

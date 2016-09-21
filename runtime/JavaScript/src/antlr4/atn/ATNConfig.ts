@@ -37,18 +37,18 @@
 //  an ATN state.
 ///
 
-var DecisionState = require('./ATNState').DecisionState;
-var SemanticContext = require('./SemanticContext').SemanticContext;
+import { DecisionState } from './ATNState';
+import { SemanticContext } from './SemanticContext';
 
-function checkParams(params, isCfg) {
+function checkParams(params?, isCfg: boolean = false) {
 	if(params===null) {
-		var result = { state:null, alt:null, context:null, semanticContext:null };
+		var result: any = { state:null, alt:null, context:null, semanticContext:null };
 		if(isCfg) {
 			result.reachesIntoOuterContext = 0;
 		}
 		return result;
 	} else {
-		var props = {};
+		var props:any = {};
 		props.state = params.state || null;
 		props.alt = (params.alt === undefined) ? null : params.alt;
 		props.context = params.context || null;
@@ -61,51 +61,60 @@ function checkParams(params, isCfg) {
 	}
 }
 
-function ATNConfig(params, config) {
-	this.checkContext(params, config);
-	params = checkParams(params);
-	config = checkParams(config, true);
-    // The ATN state associated with this configuration///
-    this.state = params.state!==null ? params.state : config.state;
-    // What alt (or lexer rule) is predicted by this configuration///
-    this.alt = params.alt!==null ? params.alt : config.alt;
-    // The stack of invoking states leading to the rule/states associated
-    //  with this config.  We track only those contexts pushed during
-    //  execution of the ATN simulator.
-    this.context = params.context!==null ? params.context : config.context;
-    this.semanticContext = params.semanticContext!==null ? params.semanticContext :
-        (config.semanticContext!==null ? config.semanticContext : SemanticContext.NONE);
-    // We cannot execute predicates dependent upon local context unless
-    // we know for sure we are in the correct context. Because there is
-    // no way to do this efficiently, we simply cannot evaluate
-    // dependent predicates unless we are in the rule that initially
-    // invokes the ATN simulator.
-    //
-    // closure() tracks the depth of how far we dip into the
-    // outer context: depth &gt; 0.  Note that it may not be totally
-    // accurate depth since I don't ever decrement. TODO: make it a boolean then
-    this.reachesIntoOuterContext = config.reachesIntoOuterContext;
-    this.precedenceFilterSuppressed = config.precedenceFilterSuppressed;
-    return this;
-}
+export class ATNConfig {
+    precedenceFilterSuppressed;
+    reachesIntoOuterContext;
+    semanticContext;
+    context;
+    alt;
+    state;
 
-ATNConfig.prototype.checkContext = function(params, config) {
-	if((params.context===null || params.context===undefined) &&
-			(config===null || config.context===null || config.context===undefined)) {
-		this.context = null;
-	}
-};
+    constructor(params, config) {
+        this.checkContext(params, config);
+        params = checkParams(params);
+        config = checkParams(config, true);
+        // The ATN state associated with this configuration///
+        this.state = params.state !== null ? params.state : config.state;
+        // What alt (or lexer rule) is predicted by this configuration///
+        this.alt = params.alt !== null ? params.alt : config.alt;
+        // The stack of invoking states leading to the rule/states associated
+        //  with this config.  We track only those contexts pushed during
+        //  execution of the ATN simulator.
+        this.context = params.context !== null ? params.context : config.context;
+        this.semanticContext = params.semanticContext !== null
+            ? params.semanticContext
+            : (config.semanticContext !== null ? config.semanticContext : SemanticContext.NONE);
+        // We cannot execute predicates dependent upon local context unless
+        // we know for sure we are in the correct context. Because there is
+        // no way to do this efficiently, we simply cannot evaluate
+        // dependent predicates unless we are in the rule that initially
+        // invokes the ATN simulator.
+        //
+        // closure() tracks the depth of how far we dip into the
+        // outer context: depth &gt; 0.  Note that it may not be totally
+        // accurate depth since I don't ever decrement. TODO: make it a boolean then
+        this.reachesIntoOuterContext = config.reachesIntoOuterContext;
+        this.precedenceFilterSuppressed = config.precedenceFilterSuppressed;
+        return this;
+    }
+
+    checkContext(params, config) {
+        if((params.context===null || params.context===undefined) &&
+                (config===null || config.context===null || config.context===undefined)) {
+            this.context = null;
+        }
+    };
 
 // An ATN configuration is equal to another if both have
 //  the same state, they predict the same alternative, and
 //  syntactic/semantic contexts are the same.
 ///
-ATNConfig.prototype.equals = function(other) {
-    if (this === other) {
-        return true;
-    } else if (! (other instanceof ATNConfig)) {
-        return false;
-    } else {
+    equals(other) {
+        if (this === other) {
+            return true;
+        } else if (! (other instanceof ATNConfig)) {
+            return false;
+        } else {
         return this.state.stateNumber===other.state.stateNumber &&
             this.alt===other.alt &&
             (this.context===null ? other.context===null : this.context.equals(other.context)) &&
@@ -114,67 +123,70 @@ ATNConfig.prototype.equals = function(other) {
     }
 };
 
-ATNConfig.prototype.shortHashString = function() {
-    return "" + this.state.stateNumber + "/" + this.alt + "/" + this.semanticContext;
-};
+    shortHashString() {
+        return "" + this.state.stateNumber + "/" + this.alt + "/" + this.semanticContext;
+    };
 
-ATNConfig.prototype.hashString = function() {
-    return "" + this.state.stateNumber + "/" + this.alt + "/" +
-             (this.context===null ? "" : this.context.hashString()) +
-             "/" + this.semanticContext.hashString();
-};
+    hashString() {
+        return "" + this.state.stateNumber + "/" + this.alt + "/" +
+                    (this.context===null ? "" : this.context.hashString()) +
+                    "/" + this.semanticContext.hashString();
+    };
 
-ATNConfig.prototype.toString = function() {
-    return "(" + this.state + "," + this.alt +
-        (this.context!==null ? ",[" + this.context.toString() + "]" : "") +
-        (this.semanticContext !== SemanticContext.NONE ?
-                ("," + this.semanticContext.toString())
-                : "") +
-        (this.reachesIntoOuterContext>0 ?
-                (",up=" + this.reachesIntoOuterContext)
-                : "") + ")";
-};
-
-
-function LexerATNConfig(params, config) {
-	ATNConfig.call(this, params, config);
-    
-    // This is the backing field for {@link //getLexerActionExecutor}.
-	var lexerActionExecutor = params.lexerActionExecutor || null;
-    this.lexerActionExecutor = lexerActionExecutor || (config!==null ? config.lexerActionExecutor : null);
-    this.passedThroughNonGreedyDecision = config!==null ? this.checkNonGreedyDecision(config, this.state) : false;
-    return this;
+    toString() {
+        return "(" + this.state + "," + this.alt +
+            (this.context!==null ? ",[" + this.context.toString() + "]" : "") +
+            (this.semanticContext !== SemanticContext.NONE ?
+                    ("," + this.semanticContext.toString())
+                    : "") +
+            (this.reachesIntoOuterContext>0 ?
+                    (",up=" + this.reachesIntoOuterContext)
+                    : "") + ")";
+    };
 }
 
-LexerATNConfig.prototype = Object.create(ATNConfig.prototype);
-LexerATNConfig.prototype.constructor = LexerATNConfig;
+export class LexerATNConfig extends ATNConfig {
+    passedThroughNonGreedyDecision;
+    lexerActionExecutor;
 
-LexerATNConfig.prototype.hashString = function() {
-    return "" + this.state.stateNumber + this.alt + this.context +
-            this.semanticContext + (this.passedThroughNonGreedyDecision ? 1 : 0) +
-            this.lexerActionExecutor;
-};
+    constructor(params, config) {
+        super(params, config);
 
-LexerATNConfig.prototype.equals = function(other) {
-    if (this === other) {
-        return true;
-    } else if (!(other instanceof LexerATNConfig)) {
-        return false;
-    } else if (this.passedThroughNonGreedyDecision !== other.passedThroughNonGreedyDecision) {
-        return false;
-    } else if (this.lexerActionExecutor ?
-            !this.lexerActionExecutor.equals(other.lexerActionExecutor)
-            : !other.lexerActionExecutor) {
-        return false;
-    } else {
-        return ATNConfig.prototype.equals.call(this, other);
+        // This is the backing field for {@link //getLexerActionExecutor}.
+        var lexerActionExecutor = params.lexerActionExecutor || null;
+        this.lexerActionExecutor = lexerActionExecutor || (config !== null ? config.lexerActionExecutor : null);
+        this.passedThroughNonGreedyDecision = config !== null ? this.checkNonGreedyDecision(config, this.state) : false;
+        return this;
     }
-};
 
-LexerATNConfig.prototype.checkNonGreedyDecision = function(source, target) {
-    return source.passedThroughNonGreedyDecision ||
-        (target instanceof DecisionState) && target.nonGreedy;
-};
+    hashString() {
+        return "" +
+            this.state.stateNumber +
+            this.alt +
+            this.context +
+            this.semanticContext +
+            (this.passedThroughNonGreedyDecision ? 1 : 0) +
+            this.lexerActionExecutor;
+    };
 
-exports.ATNConfig = ATNConfig;
-exports.LexerATNConfig = LexerATNConfig;
+    equals(other) {
+        if (this === other) {
+            return true;
+        } else if (!(other instanceof LexerATNConfig)) {
+            return false;
+        } else if (this.passedThroughNonGreedyDecision !== other.passedThroughNonGreedyDecision) {
+            return false;
+        } else if (this.lexerActionExecutor
+            ? !this.lexerActionExecutor.equals(other.lexerActionExecutor)
+            : !other.lexerActionExecutor) {
+            return false;
+        } else {
+            return ATNConfig.prototype.equals.call(this, other);
+        }
+    };
+
+    checkNonGreedyDecision(source, target) {
+        return source.passedThroughNonGreedyDecision ||
+            (target instanceof DecisionState) && target.nonGreedy;
+    };
+}

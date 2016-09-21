@@ -33,18 +33,18 @@
 //  This is an InputStream that is loaded from a file all at once
 //  when you construct the object.
 // 
-var InputStream = require('./InputStream').InputStream;
+import { InputStream } from './InputStream';
+declare function require(string) : any;  // Dummy declaration till we figure how to deal with below.
 var isNodeJs = typeof window === 'undefined' && typeof importScripts === 'undefined';
 var fs = isNodeJs ? require("fs") : null;
 
-function FileStream(fileName) {
-	var data = fs.readFileSync(fileName, "utf8");
-	InputStream.call(this, data);
-	this.fileName = fileName;
-	return this;
+export class FileStream extends InputStream {
+    fileName;
+
+    constructor(fileName) {
+        var data = fs.readFileSync(fileName, "utf8");
+        super(data);
+        this.fileName = fileName;
+        return this;
+    }
 }
-
-FileStream.prototype = Object.create(InputStream.prototype);
-FileStream.prototype.constructor = FileStream;
-
-exports.FileStream = FileStream;

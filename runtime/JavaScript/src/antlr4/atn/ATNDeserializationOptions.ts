@@ -27,18 +27,19 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-function ATNDeserializationOptions(copyFrom) {
-	if(copyFrom===undefined) {
-		copyFrom = null;
-	}
-	this.readOnly = false;
-    this.verifyATN = copyFrom===null ? true : copyFrom.verifyATN;
-    this.generateRuleBypassTransitions = copyFrom===null ? false : copyFrom.generateRuleBypassTransitions;
+export class ATNDeserializationOptions {
+    readOnly: boolean = false;
+    verifyATN: boolean;
+    generateRuleBypassTransitions: boolean;
 
-    return this;
+    constructor(copyFrom = null) {
+        this.verifyATN = copyFrom===null ? true : copyFrom.verifyATN;
+        this.generateRuleBypassTransitions = copyFrom===null ? false : copyFrom.generateRuleBypassTransitions;
+    }
+
+    static defaultOptions = new ATNDeserializationOptions();
 }
 
-ATNDeserializationOptions.defaultOptions = new ATNDeserializationOptions();
 ATNDeserializationOptions.defaultOptions.readOnly = true;
 
 //    def __setattr__(self, key, value):
@@ -46,4 +47,3 @@ ATNDeserializationOptions.defaultOptions.readOnly = true;
 //            raise Exception("The object is read only.")
 //        super(type(self), self).__setattr__(key,value)
 
-exports.ATNDeserializationOptions = ATNDeserializationOptions;
