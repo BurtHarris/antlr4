@@ -581,4 +581,4 @@ export class PredictionMode {
         }
         return result;
     };
-
+}

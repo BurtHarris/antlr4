@@ -197,3 +197,4 @@ export class ParseCancellationException extends Error {
         super(message);
         Error.captureStackTrace(this, ParseCancellationException);
     }
+}

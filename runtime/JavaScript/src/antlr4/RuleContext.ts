@@ -53,9 +53,9 @@ import { RuleNode } from './tree/Tree';
 import { INVALID_INTERVAL } from './tree/Tree';
 import { INVALID_ALT_NUMBER } from './atn/ATN';
 import { Trees } from './tree/Trees';
-import { ParserRuleContext } from '../ParserRuleContext';
+import { ParserRuleContext } from './ParserRuleContext';
 
-export class RuleContext extends RuleNode {
+export class RuleContext implements RuleNode {
     constructor(public parentCtx = null, public invokingState = -1) {
         super();
         // What state invoked the rule associated with this context?
