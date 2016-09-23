@@ -28,12 +28,7 @@
 //  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 //  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///
-"use strict";
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
+
 //
 // This class extends {@link BufferedTokenStream} with functionality to filter
 // token streams to tokens on a particular channel (tokens where
@@ -58,75 +53,76 @@ var __extends = (this && this.__extends) || function (d, b) {
 // such a rule will not be available as part of the token stream, regardless of
 // channel.</p>
 ///
-var Token_1 = require('./Token');
-var BufferedTokenStream_1 = require('./BufferedTokenStream');
-var CommonTokenStream = (function (_super) {
-    __extends(CommonTokenStream, _super);
-    function CommonTokenStream(lexer, channel) {
-        if (channel === void 0) { channel = Token_1.Token.DEFAULT_CHANNEL; }
-        _super.call(this, lexer);
-        this.channel = channel;
+
+var Token = require('./Token').Token;
+var BufferedTokenStream = require('./BufferedTokenStream').BufferedTokenStream;
+
+function CommonTokenStream(lexer, channel) {
+	BufferedTokenStream.call(this, lexer);
+    this.channel = channel===undefined ? Token.DEFAULT_CHANNEL : channel;
+    return this;
+}
+
+CommonTokenStream.prototype = Object.create(BufferedTokenStream.prototype);
+CommonTokenStream.prototype.constructor = CommonTokenStream;
+
+CommonTokenStream.prototype.adjustSeekIndex = function(i) {
+    return this.nextTokenOnChannel(i, this.channel);
+};
+
+CommonTokenStream.prototype.LB = function(k) {
+    if (k===0 || this.index-k<0) {
+        return null;
     }
-    CommonTokenStream.prototype.adjustSeekIndex = function (i) {
-        return this.nextTokenOnChannel(i, this.channel);
-    };
-    ;
-    CommonTokenStream.prototype.LB = function (k) {
-        if (k === 0 || this.index - k < 0) {
-            return null;
+    var i = this.index;
+    var n = 1;
+    // find k good tokens looking backwards
+    while (n <= k) {
+        // skip off-channel tokens
+        i = this.previousTokenOnChannel(i - 1, this.channel);
+        n += 1;
+    }
+    if (i < 0) {
+        return null;
+    }
+    return this.tokens[i];
+};
+
+CommonTokenStream.prototype.LT = function(k) {
+    this.lazyInit();
+    if (k === 0) {
+        return null;
+    }
+    if (k < 0) {
+        return this.LB(-k);
+    }
+    var i = this.index;
+    var n = 1; // we know tokens[pos] is a good one
+    // find k good tokens
+    while (n < k) {
+        // skip off-channel tokens, but make sure to not look past EOF
+        if (this.sync(i + 1)) {
+            i = this.nextTokenOnChannel(i + 1, this.channel);
         }
-        var i = this.index;
-        var n = 1;
-        // find k good tokens looking backwards
-        while (n <= k) {
-            // skip off-channel tokens
-            i = this.previousTokenOnChannel(i - 1, this.channel);
+        n += 1;
+    }
+    return this.tokens[i];
+};
+
+// Count EOF just once.///
+CommonTokenStream.prototype.getNumberOfOnChannelTokens = function() {
+    var n = 0;
+    this.fill();
+    for (var i =0; i< this.tokens.length;i++) {
+        var t = this.tokens[i];
+        if( t.channel===this.channel) {
             n += 1;
         }
-        if (i < 0) {
-            return null;
+        if( t.type===Token.EOF) {
+            break;
         }
-        return this.tokens[i];
-    };
-    ;
-    CommonTokenStream.prototype.LT = function (k) {
-        this.lazyInit();
-        if (k === 0) {
-            return null;
-        }
-        if (k < 0) {
-            return this.LB(-k);
-        }
-        var i = this.index;
-        var n = 1; // we know tokens[pos] is a good one
-        // find k good tokens
-        while (n < k) {
-            // skip off-channel tokens, but make sure to not look past EOF
-            if (this.sync(i + 1)) {
-                i = this.nextTokenOnChannel(i + 1, this.channel);
-            }
-            n += 1;
-        }
-        return this.tokens[i];
-    };
-    ;
-    // Count EOF just once.///
-    CommonTokenStream.prototype.getNumberOfOnChannelTokens = function () {
-        var n = 0;
-        this.fill();
-        for (var i = 0; i < this.tokens.length; i++) {
-            var t = this.tokens[i];
-            if (t.channel === this.channel) {
-                n += 1;
-            }
-            if (t.type === Token_1.Token.EOF) {
-                break;
-            }
-        }
-        return n;
-    };
-    ;
-    return CommonTokenStream;
-}(BufferedTokenStream_1.BufferedTokenStream));
+    }
+    return n;
+};
+
 exports.CommonTokenStream = CommonTokenStream;
-//# sourceMappingURL=CommonTokenStream.js.map

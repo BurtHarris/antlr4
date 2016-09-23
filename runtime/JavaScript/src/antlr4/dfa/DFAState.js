@@ -28,22 +28,23 @@
 //  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 //  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///
-"use strict";
-var ATNConfigSet_1 = require('./../atn/ATNConfigSet');
-var Utils_1 = require('../Utils');
+
+var ATNConfigSet = require('./../atn/ATNConfigSet').ATNConfigSet;
+var Utils = require('./../Utils');
+var Set = Utils.Set;
+
 // Map a predicate to a predicted alternative.///
-var PredPrediction = (function () {
-    function PredPrediction(pred, alt) {
-        this.pred = pred;
-        this.alt = alt;
-    }
-    PredPrediction.prototype.toString = function () {
-        return "(" + this.pred + ", " + this.alt + ")";
-    };
-    ;
-    return PredPrediction;
-}());
-exports.PredPrediction = PredPrediction;
+
+function PredPrediction(pred, alt) {
+	this.alt = alt;
+	this.pred = pred;
+	return this;
+}
+
+PredPrediction.prototype.toString = function() {
+	return "(" + this.pred + ", " + this.alt + ")";
+};
+
 // A DFA state represents a set of possible ATN configurations.
 // As Aho, Sethi, Ullman p. 117 says "The DFA uses its state
 // to keep track of all possible states the ATN can be in after
@@ -68,99 +69,100 @@ exports.PredPrediction = PredPrediction;
 // but with different ATN contexts (with same or different alts)
 // meaning that state was reached via a different set of rule invocations.</p>
 // /
-var DFAState = (function () {
-    function DFAState(stateNumber, configs) {
-        if (stateNumber === void 0) { stateNumber = -1; }
-        if (configs === void 0) { configs = new ATNConfigSet_1.ATNConfigSet(); }
-        this.stateNumber = stateNumber;
-        this.configs = configs;
-        // {@code edges[symbol]} points to target of symbol. Shift up by 1 so (-1)
-        // {@link Token//EOF} maps to {@code edges[0]}.
-        this.edges = null;
-        this.isAcceptState = false;
-        // if accept state, what ttype do we match or alt do we predict?
-        // This is set to {@link ATN//INVALID_ALT_NUMBER} when {@link
-        // //predicates}{@code !=null} or
-        // {@link //requiresFullContext}.
-        this.prediction = 0;
-        this.lexerActionExecutor = null;
-        // Indicates that this state was created during SLL prediction that
-        // discovered a conflict between the configurations in the state. Future
-        // {@link ParserATNSimulator//execATN} invocations immediately jumped doing
-        // full context prediction if this field is true.
-        this.requiresFullContext = false;
-        // During SLL parsing, this is a list of predicates associated with the
-        // ATN configurations of the DFA state. When we have predicates,
-        // {@link //requiresFullContext} is {@code false} since full context
-        // prediction evaluates predicates
-        // on-the-fly. If this is not null, then {@link //prediction} is
-        // {@link ATN//INVALID_ALT_NUMBER}.
-        //
-        // <p>We only use these for non-{@link //requiresFullContext} but
-        // conflicting states. That
-        // means we know from the context (it's $ or we don't dip into outer
-        // context) that it's an ambiguity not a conflict.</p>
-        //
-        // <p>This list is computed by {@link
-        // ParserATNSimulator//predicateDFAState}.</p>
-        this.predicates = null;
-    }
-    // Get the set of all alts mentioned by all ATN configurations in this
-    // DFA state.
-    DFAState.prototype.getAltSet = function () {
-        var alts = new Utils_1.Set();
-        if (this.configs !== null) {
-            for (var i = 0; i < this.configs.length; i++) {
-                var c = this.configs[i];
-                alts.add(c.alt);
-            }
-        }
-        if (alts.length === 0) {
-            return null;
-        }
-        else {
-            return alts;
-        }
-    };
-    ;
-    // Two {@link DFAState} instances are equal if their ATN configuration sets
-    // are the same. This method is used to see if a state already exists.
-    //
-    // <p>Because the number of alternatives and number of ATN configurations are
-    // finite, there is a finite number of DFA states that can be processed.
-    // This is necessary to show that the algorithm terminates.</p>
-    //
-    // <p>Cannot test the DFA state numbers here because in
-    // {@link ParserATNSimulator//addDFAState} we need to know if any other state
-    // exists that has this exact set of ATN configurations. The
-    // {@link //stateNumber} is irrelevant.</p>
-    DFAState.prototype.equals = function (other) {
-        // compare set of ATN configurations in this set with other
-        if (this === other) {
-            return true;
-        }
-        else if (!(other instanceof DFAState)) {
-            return false;
-        }
-        else {
-            return this.configs.equals(other.configs);
-        }
-    };
-    ;
-    DFAState.prototype.toString = function () {
-        return "" + this.stateNumber + ":" + this.hashString();
-    };
-    ;
-    DFAState.prototype.hashString = function () {
-        return "" + this.configs +
-            (this.isAcceptState ?
-                "=>" + (this.predicates !== null ?
-                    this.predicates :
-                    this.prediction) :
-                "");
-    };
-    ;
-    return DFAState;
-}());
+
+function DFAState(stateNumber, configs) {
+	if (stateNumber === null) {
+		stateNumber = -1;
+	}
+	if (configs === null) {
+		configs = new ATNConfigSet();
+	}
+	this.stateNumber = stateNumber;
+	this.configs = configs;
+	// {@code edges[symbol]} points to target of symbol. Shift up by 1 so (-1)
+	// {@link Token//EOF} maps to {@code edges[0]}.
+	this.edges = null;
+	this.isAcceptState = false;
+	// if accept state, what ttype do we match or alt do we predict?
+	// This is set to {@link ATN//INVALID_ALT_NUMBER} when {@link
+	// //predicates}{@code !=null} or
+	// {@link //requiresFullContext}.
+	this.prediction = 0;
+	this.lexerActionExecutor = null;
+	// Indicates that this state was created during SLL prediction that
+	// discovered a conflict between the configurations in the state. Future
+	// {@link ParserATNSimulator//execATN} invocations immediately jumped doing
+	// full context prediction if this field is true.
+	this.requiresFullContext = false;
+	// During SLL parsing, this is a list of predicates associated with the
+	// ATN configurations of the DFA state. When we have predicates,
+	// {@link //requiresFullContext} is {@code false} since full context
+	// prediction evaluates predicates
+	// on-the-fly. If this is not null, then {@link //prediction} is
+	// {@link ATN//INVALID_ALT_NUMBER}.
+	//
+	// <p>We only use these for non-{@link //requiresFullContext} but
+	// conflicting states. That
+	// means we know from the context (it's $ or we don't dip into outer
+	// context) that it's an ambiguity not a conflict.</p>
+	//
+	// <p>This list is computed by {@link
+	// ParserATNSimulator//predicateDFAState}.</p>
+	this.predicates = null;
+	return this;
+}
+
+// Get the set of all alts mentioned by all ATN configurations in this
+// DFA state.
+DFAState.prototype.getAltSet = function() {
+	var alts = new Set();
+	if (this.configs !== null) {
+		for (var i = 0; i < this.configs.length; i++) {
+			var c = this.configs[i];
+			alts.add(c.alt);
+		}
+	}
+	if (alts.length === 0) {
+		return null;
+	} else {
+		return alts;
+	}
+};
+
+// Two {@link DFAState} instances are equal if their ATN configuration sets
+// are the same. This method is used to see if a state already exists.
+//
+// <p>Because the number of alternatives and number of ATN configurations are
+// finite, there is a finite number of DFA states that can be processed.
+// This is necessary to show that the algorithm terminates.</p>
+//
+// <p>Cannot test the DFA state numbers here because in
+// {@link ParserATNSimulator//addDFAState} we need to know if any other state
+// exists that has this exact set of ATN configurations. The
+// {@link //stateNumber} is irrelevant.</p>
+DFAState.prototype.equals = function(other) {
+	// compare set of ATN configurations in this set with other
+	if (this === other) {
+		return true;
+	} else if (!(other instanceof DFAState)) {
+		return false;
+	} else {
+		return this.configs.equals(other.configs);
+	}
+};
+
+DFAState.prototype.toString = function() {
+	return "" + this.stateNumber + ":" + this.hashString();
+};
+
+DFAState.prototype.hashString = function() {
+	return "" +  this.configs +
+			(this.isAcceptState ?
+					"=>" + (this.predicates !== null ?
+								this.predicates :
+								this.prediction) :
+					"");
+};
+
 exports.DFAState = DFAState;
-//# sourceMappingURL=DFAState.js.map
+exports.PredPrediction = PredPrediction;

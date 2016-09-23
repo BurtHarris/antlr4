@@ -27,14 +27,15 @@
 //  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 //  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///
-"use strict";
+
 // Represents the type of recognizer an ATN applies to.
-var ATNType = (function () {
-    function ATNType() {
-    }
-    ATNType.PARSER = 1;
-    ATNType.LEXER = 0;
-    return ATNType;
-}());
+
+function ATNType() {
+	
+}
+
+ATNType.LEXER = 0;
+ATNType.PARSER = 1;
+
 exports.ATNType = ATNType;
-//# sourceMappingURL=ATNType.js.map
+
