@@ -1,0 +1,5 @@
+# Temporarily we will leave the unaltered JavaScript files in the directory so it's easy to compare 
+# the typescript generated versions with 
+
+*.js.map
+*.js

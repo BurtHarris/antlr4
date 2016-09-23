@@ -26,24 +26,21 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-function ATNDeserializationOptions(copyFrom) {
-	if(copyFrom===undefined) {
-		copyFrom = null;
-	}
-	this.readOnly = false;
-    this.verifyATN = copyFrom===null ? true : copyFrom.verifyATN;
-    this.generateRuleBypassTransitions = copyFrom===null ? false : copyFrom.generateRuleBypassTransitions;
-
-    return this;
-}
-
-ATNDeserializationOptions.defaultOptions = new ATNDeserializationOptions();
+"use strict";
+var ATNDeserializationOptions = (function () {
+    function ATNDeserializationOptions(copyFrom) {
+        if (copyFrom === void 0) { copyFrom = null; }
+        this.readOnly = false;
+        this.verifyATN = copyFrom === null ? true : copyFrom.verifyATN;
+        this.generateRuleBypassTransitions = copyFrom === null ? false : copyFrom.generateRuleBypassTransitions;
+    }
+    ATNDeserializationOptions.defaultOptions = new ATNDeserializationOptions();
+    return ATNDeserializationOptions;
+}());
+exports.ATNDeserializationOptions = ATNDeserializationOptions;
 ATNDeserializationOptions.defaultOptions.readOnly = true;
-
 //    def __setattr__(self, key, value):
 //        if key!="readOnly" and self.readOnly:
 //            raise Exception("The object is read only.")
 //        super(type(self), self).__setattr__(key,value)
-
-exports.ATNDeserializationOptions = ATNDeserializationOptions;
+//# sourceMappingURL=ATNDeserializationOptions.js.map

@@ -1,0 +1,304 @@
+//
+// [The "BSD license"]
+//  Copyright (c) 2012 Terence Parr
+//  Copyright (c) 2012 Sam Harwell
+//  Copyright (c) 2014 Eric Vergnaud
+//  All rights reserved.
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions
+//  are met:
+//
+//  1. Redistributions of source code must retain the above copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. The name of the author may not be used to endorse or promote products
+//     derived from this software without specific prior written permission.
+//
+//  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+//  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+//  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+//  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+//  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+//  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+//  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+//  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+//  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+//  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+
+// The following images show the relation of states and
+// {@link ATNState//transitions} for various grammar constructs.
+//
+// <ul>
+//
+// <li>Solid edges marked with an &//0949; indicate a required
+// {@link EpsilonTransition}.</li>
+//
+// <li>Dashed edges indicate locations where any transition derived from
+// {@link Transition} might appear.</li>
+//
+// <li>Dashed nodes are place holders for either a sequence of linked
+// {@link BasicState} states or the inclusion of a block representing a nested
+// construct in one of the forms below.</li>
+//
+// <li>Nodes showing multiple outgoing alternatives with a {@code ...} support
+// any number of alternatives (one or more). Nodes without the {@code ...} only
+// support the exact number of alternatives shown in the diagram.</li>
+//
+// </ul>
+//
+// <h2>Basic Blocks</h2>
+//
+// <h3>Rule</h3>
+//
+// <embed src="images/Rule.svg" type="image/svg+xml"/>
+//
+// <h3>Block of 1 or more alternatives</h3>
+//
+// <embed src="images/Block.svg" type="image/svg+xml"/>
+//
+// <h2>Greedy Loops</h2>
+//
+// <h3>Greedy Closure: {@code (...)*}</h3>
+//
+// <embed src="images/ClosureGreedy.svg" type="image/svg+xml"/>
+//
+// <h3>Greedy Positive Closure: {@code (...)+}</h3>
+//
+// <embed src="images/PositiveClosureGreedy.svg" type="image/svg+xml"/>
+//
+// <h3>Greedy Optional: {@code (...)?}</h3>
+//
+// <embed src="images/OptionalGreedy.svg" type="image/svg+xml"/>
+//
+// <h2>Non-Greedy Loops</h2>
+//
+// <h3>Non-Greedy Closure: {@code (...)*?}</h3>
+//
+// <embed src="images/ClosureNonGreedy.svg" type="image/svg+xml"/>
+//
+// <h3>Non-Greedy Positive Closure: {@code (...)+?}</h3>
+//
+// <embed src="images/PositiveClosureNonGreedy.svg" type="image/svg+xml"/>
+//
+// <h3>Non-Greedy Optional: {@code (...)??}</h3>
+//
+// <embed src="images/OptionalNonGreedy.svg" type="image/svg+xml"/>
+//
+import {IntervalSet} from '../IntervalSet';
+import {Transition} from './Transition';
+
+const INITIAL_NUM_TRANSITIONS = 4;
+
+export abstract class ATNState {
+    // Which ATN are we in?    
+    atn: ATNState = null;
+    stateNumber: number = ATNState.INVALID_STATE_NUMBER;
+    stateType : number = null;
+    ruleIndex: number = 0;
+    epsilonOnlyTransitions: boolean = false;
+    // Track the transitions emanating from this ATN state.
+    transitions: Array<Transition> = [];
+    // Used to cache lookahead during parsing, not used during construction
+    nextTokenWithinRule: IntervalSet = null;
+
+// constants for serialization
+    static INVALID_TYPE = 0;
+    static BASIC = 1;
+    static RULE_START = 2;
+    static BLOCK_START = 3;
+    static PLUS_BLOCK_START = 4;
+    static STAR_BLOCK_START = 5;
+    static TOKEN_START = 6;
+    static RULE_STOP = 7;
+    static BLOCK_END = 8;
+    static STAR_LOOP_BACK = 9;
+    static STAR_LOOP_ENTRY = 10;
+    static PLUS_LOOP_BACK = 11;
+    static LOOP_END = 12;
+
+    static serializationNames = [
+        "INVALID",
+        "BASIC",
+        "RULE_START",
+        "BLOCK_START",
+        "PLUS_BLOCK_START",
+        "STAR_BLOCK_START",
+        "TOKEN_START",
+        "RULE_STOP",
+        "BLOCK_END",
+        "STAR_LOOP_BACK",
+        "STAR_LOOP_ENTRY",
+        "PLUS_LOOP_BACK",
+        "LOOP_END" ];
+
+    static INVALID_STATE_NUMBER = -1;
+
+    toString() {
+        return this.stateNumber;
+    };
+
+    equals(other) {
+        if (other instanceof ATNState) {
+            return this.stateNumber===other.stateNumber;
+        } else {
+            return false;
+        }
+    };
+
+    isNonGreedyExitState() {
+        return false;
+    };
+
+    addTransition(trans, index?: number) {
+        if(index===undefined) {
+            index = -1;
+        }
+        if (this.transitions.length===0) {
+            this.epsilonOnlyTransitions = trans.isEpsilon;
+        } else if(this.epsilonOnlyTransitions !== trans.isEpsilon) {
+            this.epsilonOnlyTransitions = false;
+        }
+        if (index === -1) {
+            this.transitions.push(trans);
+        } else {
+            this.transitions.splice(index, 1, trans);
+        }
+    };
+}
+
+export class BasicState extends ATNState {
+    constructor() {
+        super();
+        this.stateType = ATNState.BASIC;
+        return this;
+    }
+}
+
+export abstract class DecisionState extends ATNState {
+    decision = -1;
+    nonGreedy = false;
+    constructor() {
+        super();
+    }
+}
+
+//  The start of a regular {@code (...)} block.
+export class BlockStartState extends DecisionState {
+    endState = null;
+
+    constructor() {
+        super();
+    }
+}
+
+export class BasicBlockStartState extends BlockStartState {
+
+    constructor() {
+        super();
+        this.stateType = ATNState.BLOCK_START;
+    }
+}
+
+// Terminal node of a simple {@code (a|b|c)} block.
+export class BlockEndState extends ATNState {
+    startState = null;;
+    constructor() {
+        super();
+        this.stateType = ATNState.BLOCK_END;
+    }
+}
+
+// The last node in the ATN for a rule, unless that rule is the start symbol.
+//  In that case, there is one transition to EOF. Later, we might encode
+//  references to all calls to this rule to compute FOLLOW sets for
+//  error handling.
+//
+export class RuleStopState extends ATNState {
+    constructor() {
+        super();
+        this.stateType = ATNState.RULE_STOP;
+    }
+}
+
+export class RuleStartState extends ATNState {
+    stopState = null;
+    isPrecedenceRule = false;
+
+    constructor() {
+        super();
+        this.stateType = ATNState.RULE_START;
+    }
+}
+
+// Decision state for {@code A+} and {@code (A|B)+}.  It has two transitions:
+//  one to the loop back to start of the block and one to exit.
+//
+export class PlusLoopbackState extends DecisionState {
+    constructor() {
+        super();
+        this.stateType = ATNState.PLUS_LOOP_BACK;
+    }
+}
+
+// Start of {@code (A|B|...)+} loop. Technically a decision state, but
+//  we don't use for code generation; somebody might need it, so I'm defining
+//  it for completeness. In reality, the {@link PlusLoopbackState} node is the
+//  real decision-making note for {@code A+}.
+//
+export class PlusBlockStartState extends BlockStartState {
+    loopBackState = null;
+
+    constructor() {
+        super();
+        this.stateType = ATNState.PLUS_BLOCK_START;
+    }
+}
+
+// The block that begins a closure loop.
+export class StarBlockStartState extends BlockStartState {
+    constructor() {
+        super();
+        this.stateType = ATNState.STAR_BLOCK_START;
+    }
+}
+
+export class StarLoopbackState extends ATNState {
+    constructor() {
+        super();
+        this.stateType = ATNState.STAR_LOOP_BACK;
+    }
+}
+
+export class StarLoopEntryState extends DecisionState {
+    loopBackState = null;
+    // Indicates whether this state can benefit from a precedence DFA during SLL decision making.
+    precedenceRuleDecision = null;
+
+    constructor() {
+        super();
+        this.stateType = ATNState.STAR_LOOP_ENTRY;
+        return this;
+    }
+}
+
+// Mark the end of a * or + loop.
+export class LoopEndState extends ATNState {
+    loopBackState = null;
+
+    constructor() {
+        super();
+        this.stateType = ATNState.LOOP_END;
+    }
+}
+
+// The Tokens rule start state linking to each lexer rule start state */
+export class TokensStartState extends DecisionState {
+    constructor() {
+        super();
+        this.stateType = ATNState.TOKEN_START;
+    }
+}

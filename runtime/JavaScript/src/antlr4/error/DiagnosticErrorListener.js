@@ -28,7 +28,12 @@
 //  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 //  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-
+"use strict";
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 //
 // This implementation of {@link ANTLRErrorListener} can be used to identify
 // certain potential correctness and performance problems in grammars. "Reports"
@@ -47,89 +52,82 @@
 // a truly viable alternative. Two-stage parsing cannot be used for inputs where
 // this situation occurs.</li>
 // </ul>
-
-var BitSet = require('./../Utils').BitSet;
-var ErrorListener = require('./ErrorListener').ErrorListener;
-var Interval = require('./../IntervalSet').Interval;
-
-function DiagnosticErrorListener(exactOnly) {
-	ErrorListener.call(this);
-	exactOnly = exactOnly || true;
-	// whether all ambiguities or only exact ambiguities are reported.
-	this.exactOnly = exactOnly;
-	return this;
-}
-
-DiagnosticErrorListener.prototype = Object.create(ErrorListener.prototype);
-DiagnosticErrorListener.prototype.constructor = DiagnosticErrorListener;
-
-DiagnosticErrorListener.prototype.reportAmbiguity = function(recognizer, dfa,
-		startIndex, stopIndex, exact, ambigAlts, configs) {
-	if (this.exactOnly && !exact) {
-		return;
-	}
-	var msg = "reportAmbiguity d=" +
-			this.getDecisionDescription(recognizer, dfa) +
-			": ambigAlts=" +
-			this.getConflictingAlts(ambigAlts, configs) +
-			", input='" +
-			recognizer.getTokenStream().getText(new Interval(startIndex, stopIndex)) + "'";
-	recognizer.notifyErrorListeners(msg);
-};
-
-DiagnosticErrorListener.prototype.reportAttemptingFullContext = function(
-		recognizer, dfa, startIndex, stopIndex, conflictingAlts, configs) {
-	var msg = "reportAttemptingFullContext d=" +
-			this.getDecisionDescription(recognizer, dfa) +
-			", input='" +
-			recognizer.getTokenStream().getText(new Interval(startIndex, stopIndex)) + "'";
-	recognizer.notifyErrorListeners(msg);
-};
-
-DiagnosticErrorListener.prototype.reportContextSensitivity = function(
-		recognizer, dfa, startIndex, stopIndex, prediction, configs) {
-	var msg = "reportContextSensitivity d=" +
-			this.getDecisionDescription(recognizer, dfa) +
-			", input='" +
-			recognizer.getTokenStream().getText(new Interval(startIndex, stopIndex)) + "'";
-	recognizer.notifyErrorListeners(msg);
-};
-
-DiagnosticErrorListener.prototype.getDecisionDescription = function(recognizer, dfa) {
-	var decision = dfa.decision;
-	var ruleIndex = dfa.atnStartState.ruleIndex;
-
-	var ruleNames = recognizer.ruleNames;
-	if (ruleIndex < 0 || ruleIndex >= ruleNames.length) {
-		return "" + decision;
-	}
-	var ruleName = ruleNames[ruleIndex] || null;
-	if (ruleName === null || ruleName.length === 0) {
-		return "" + decision;
-	}
-	return "" + decision + " (" + ruleName + ")";
-};
-
-//
-// Computes the set of conflicting or ambiguous alternatives from a
-// configuration set, if that information was not already provided by the
-// parser.
-//
-// @param reportedAlts The set of conflicting or ambiguous alternatives, as
-// reported by the parser.
-// @param configs The conflicting or ambiguous configuration set.
-// @return Returns {@code reportedAlts} if it is not {@code null}, otherwise
-// returns the set of alternatives represented in {@code configs}.
-//
-DiagnosticErrorListener.prototype.getConflictingAlts = function(reportedAlts, configs) {
-	if (reportedAlts !== null) {
-		return reportedAlts;
-	}
-	var result = new BitSet();
-	for (var i = 0; i < configs.items.length; i++) {
-		result.add(configs.items[i].alt);
-	}
-	return "{" + result.values().join(", ") + "}";
-};
-
+var Utils_1 = require('./../Utils');
+var ErrorListener_1 = require('./ErrorListener');
+var IntervalSet_1 = require('./../IntervalSet');
+var DiagnosticErrorListener = (function (_super) {
+    __extends(DiagnosticErrorListener, _super);
+    function DiagnosticErrorListener(exactOnly) {
+        if (exactOnly === void 0) { exactOnly = true; }
+        _super.call(this);
+        this.exactOnly = exactOnly;
+    }
+    DiagnosticErrorListener.prototype.reportAmbiguity = function (recognizer, startIndex, stopIndex, exact, ambigAlts, configs) {
+        if (this.exactOnly && !exact) {
+            return;
+        }
+        var msg = "reportAmbiguity d=" +
+            this.getDecisionDescription(recognizer, dfa) +
+            ": ambigAlts=" +
+            this.getConflictingAlts(ambigAlts, configs) +
+            ", input='" +
+            recognizer.getTokenStream().getText(new IntervalSet_1.Interval(startIndex, stopIndex)) + "'";
+        recognizer.notifyErrorListeners(msg);
+    };
+    ;
+    DiagnosticErrorListener.prototype.reportAttemptingFullContext = function (recognizer, dfa, startIndex, stopIndex, conflictingAlts, configs) {
+        var msg = "reportAttemptingFullContext d=" +
+            this.getDecisionDescription(recognizer, dfa) +
+            ", input='" +
+            recognizer.getTokenStream().getText(new IntervalSet_1.Interval(startIndex, stopIndex)) + "'";
+        recognizer.notifyErrorListeners(msg);
+    };
+    ;
+    DiagnosticErrorListener.prototype.reportContextSensitivity = function (recognizer, dfa, startIndex, stopIndex, prediction, configs) {
+        var msg = "reportContextSensitivity d=" +
+            this.getDecisionDescription(recognizer, dfa) +
+            ", input='" +
+            recognizer.getTokenStream().getText(new IntervalSet_1.Interval(startIndex, stopIndex)) + "'";
+        recognizer.notifyErrorListeners(msg);
+    };
+    ;
+    DiagnosticErrorListener.prototype.getDecisionDescription = function (recognizer, dfa) {
+        var decision = dfa.decision;
+        var ruleIndex = dfa.atnStartState.ruleIndex;
+        var ruleNames = recognizer.ruleNames;
+        if (ruleIndex < 0 || ruleIndex >= ruleNames.length) {
+            return "" + decision;
+        }
+        var ruleName = ruleNames[ruleIndex] || null;
+        if (ruleName === null || ruleName.length === 0) {
+            return "" + decision;
+        }
+        return "" + decision + " (" + ruleName + ")";
+    };
+    ;
+    //
+    // Computes the set of conflicting or ambiguous alternatives from a
+    // configuration set, if that information was not already provided by the
+    // parser.
+    //
+    // @param reportedAlts The set of conflicting or ambiguous alternatives, as
+    // reported by the parser.
+    // @param configs The conflicting or ambiguous configuration set.
+    // @return Returns {@code reportedAlts} if it is not {@code null}, otherwise
+    // returns the set of alternatives represented in {@code configs}.
+    //
+    DiagnosticErrorListener.prototype.getConflictingAlts = function (reportedAlts, configs) {
+        if (reportedAlts !== null) {
+            return reportedAlts;
+        }
+        var result = new Utils_1.BitSet();
+        for (var i = 0; i < configs.items.length; i++) {
+            result.add(configs.items[i].alt);
+        }
+        return "{" + result.values().join(", ") + "}";
+    };
+    ;
+    return DiagnosticErrorListener;
+}(ErrorListener_1.ErrorListener));
 exports.DiagnosticErrorListener = DiagnosticErrorListener;
+//# sourceMappingURL=DiagnosticErrorListener.js.map
