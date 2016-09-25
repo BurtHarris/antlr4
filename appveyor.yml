@@ -8,6 +8,9 @@ install:
   - cinst python2
   - cinst python3
   - ps: |
+          "PATH:"
+          $env:path -split ';'
+          "Versions:"
           node --version
           nvm --version
           java -version
