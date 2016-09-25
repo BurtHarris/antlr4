@@ -3,7 +3,7 @@ os: Windows Server 2012
 install:
   - cinst maven
   - ps |
-        node -e process.argv
+        node -p process.argv
 build_script:
   - mvn compile --batch-mode 
 test_script:
