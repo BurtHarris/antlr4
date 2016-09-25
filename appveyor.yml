@@ -2,15 +2,5 @@ version: '{build}'
 os: Windows Server 2012
 install:
   - cinst maven
-  - ps: |
-          "Node Version $(node --version)"
-          "NPM Version $(npm --version)"
-  - cmd: SET MAVEN_OPTS=-XX:MaxPermSize=2g -Xmx4g
-  - cmd: SET JAVA_OPTS=-XX:MaxPermSize=2g -Xmx4g
-build_script:
-  - mvn clean package --batch-mode -DskipTest
 test_script:
-  - mvn help # clean install --batch-mode
-cache:
-  - C:\tools\apache-maven-3.3.9
-  - C:\Users\appveyor\.m2
+  - mvn install --batch-mode
