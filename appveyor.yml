@@ -3,15 +3,8 @@ os: Windows Server 2012
 install:
   - cinst maven
   - ps: |
-          "PATH:"
-          $env:path -split ';'
-          "Versions:"
-          node --version
-          nvm --version
-          java -version
-          javac -version
-  - cmd: SET PATH=C:\tools\apache-maven-3.3.9\bin;%JAVA_HOME%\bin;%PATH%
-  - cmd: SET M2_HOME=C:\tools\apache-maven-3.3.9
+          "Node Version $(node --version)"
+          "NPM Version $(npm --version)"
   - cmd: SET MAVEN_OPTS=-XX:MaxPermSize=2g -Xmx4g
   - cmd: SET JAVA_OPTS=-XX:MaxPermSize=2g -Xmx4g
 build_script:
