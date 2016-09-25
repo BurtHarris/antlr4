@@ -2,5 +2,7 @@ version: '{build}'
 os: Windows Server 2012
 install:
   - cinst maven
+build_script:
+  - mvn compile --batch-mode 
 test_script:
   - mvn install --batch-mode
